@@ -22,10 +22,9 @@ module Redtape
         begin
           model = send(accessor)
           unless model.valid?
-            errors.add(
-              model.class.to_s.underscore,
-              model.errors.full_messages
-            )
+            model.errors.each do |k, v|
+              errors.add(k, v)
+            end
           end
         rescue
         end

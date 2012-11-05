@@ -37,8 +37,6 @@ class TestRegistrationForm < Redtape::Form
 
   attr_accessor :first_name, :last_name
 
-  validates_presence_of :first_name, :last_name
-
   def populate
     self.test_user = TestUser.new(:name => "#{first_name} #{last_name}")
   end
@@ -79,7 +77,7 @@ describe Redtape::Form do
 
         specify { subject.should_not be_valid }
         specify { subject.should_not be_persisted }
-        specify { subject.errors.should have_key(:last_name) }
+        specify { subject.errors.should have_key(:name) }
         specify { subject.test_user.should_not be_valid }
       end
     end
