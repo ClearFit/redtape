@@ -46,10 +46,10 @@ describe Redtape::Form do
   context "given a Form accepting a first and last name that creates a User" do
     context "with valid data" do
       subject {
-        TestRegistrationForm.new.tap do |f|
-          f.first_name = "Evan"
-          f.last_name = "Light"
-        end
+        TestRegistrationForm.new(
+          :first_name => "Evan",
+          :last_name => "Light"
+        )
       }
 
       context "after saving the form" do

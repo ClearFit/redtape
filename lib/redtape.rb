@@ -19,7 +19,7 @@ module Redtape
 
     def initialize(attrs = {})
       attrs.each do |k, v|
-        send("@#{k}=", v)
+        send("#{k}=", v)
       end
     end
 
