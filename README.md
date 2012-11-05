@@ -20,7 +20,7 @@ Or install it yourself as:
 
 ## Usage
 
-*Form* classes should inherit from *Redtape::Form*
+To use Redtape, create a subclass of Redtape::Form
 
 ### Form class conventions
 
