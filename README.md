@@ -1,6 +1,8 @@
 # Redtape
 
-TODO: Write a gem description
+Redtape provides an alternative to [ActiveRecord::NestedAttributes#accepts\_nested\_attributes\_for](http://api.rubyonrails.org/classes/ActiveRecord/NestedAttributes/ClassMethods.html#method-i-accepts_nested_attributes_for) as described in ["7 Ways to Decompose Fat Activerecord Models"](http://blog.codeclimate.com/blog/2012/10/17/7-ways-to-decompose-fat-activerecord-models/) by [Bryan Helmkamp](https://github.com/brynary).
+
+In a nutshell, *accepts\_nested\_attributes\_for* tightly couples your View to your Model.  This is highly undesirable as it makes both harder to maintain.  Instead, the Form provides a Controller delegate that mediates between the two, acting like an ActiveModel from the View and Controller's perspective but acting a proxy to the Model layer.
 
 ## Installation
 
