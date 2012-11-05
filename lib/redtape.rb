@@ -17,6 +17,12 @@ module Redtape
       @@model_accessors = args
     end
 
+    def initialize(attrs = {})
+      attrs.each do |k, v|
+        send("@#{k}=", v)
+      end
+    end
+
     def models_correct
       @@model_accessors.each do |accessor|
         begin
