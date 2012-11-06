@@ -27,12 +27,11 @@ module Redtape
       @@model_accessors.each do |accessor|
         begin
           model = send(accessor)
-          unless model.valid?
-            model.errors.each do |k, v|
-              errors.add(k, v)
-            end
+          if model.invalid?
+            own_your_errors_in(model)
           end
-        rescue
+        rescue MethodMissingError => e
+          fail MethodMissing Error, "#{self.class} is missing 'validates_and_saves :#{accessor}'"
         end
       end
     end
@@ -62,7 +61,15 @@ module Redtape
     end
 
     def populate
-      fail NotImplementedError, "Implement populate in your subclass"
+      fail NotImplementedError, "Implement #populate in your subclass"
+    end
+
+    private
+
+    def own_your_errors_in(model)
+      model.errors.each do |k, v|
+        errors.add(k, v)
+      end
     end
   end
 end
