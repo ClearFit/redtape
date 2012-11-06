@@ -106,6 +106,7 @@ We'd really like to add the following to make Redtape even easier for folks to p
 
 * A Rails generator to add the app/forms and (test/spec)/forms directories
 * Handling of <object>_id params to further automate updates via forms
+* Cleaner handling of errors within nested objects
 
 ## Contributing
 
