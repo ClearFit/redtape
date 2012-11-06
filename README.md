@@ -62,9 +62,12 @@ So say we have a RegistrationForm with these fields:
 ```ruby
     def populate
       user = User.joins(:account).where("accounts.email = ?", email).first
+      name = "#{first_name} #{last_name}"
+      if user
+        user.account.name = name
       unless user
         account = Account.new(
-          :name => "#{first_name} #{last_name}",
+          :name => name,
           :email => email
         )
         self.user = User.new(:account => account)
