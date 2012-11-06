@@ -102,6 +102,31 @@ In some special cases, e.g., you're using [devise](https://github.com/plataforma
 
 #### That's it!
 
+For this example, what you're left with is something like:
+
+```ruby
+    class RegistrationForm < Redtape::Form
+      validates_and_saves :user
+
+      attr_accessor :first_name, :last_name, :email
+
+      def populate
+        name = "#{first_name} #{last_name}"
+
+        user = User.joins(:account).where("accounts.email = ?", email).first
+        if user
+          user.account.name = name
+        unless user
+          account = Account.new(
+            :name => name,
+            :email => email
+          )  
+          self.user = User.new(:account => account)
+        end
+      end
+    end
+```
+
 Redtape will use your model's/models' validations to determine if the form data is correct.  That is, you validate and save the same way you would with any *ActiveModel*.  If any of the models are invalid, errors are added to the *Form* for handling within the View/Controller.
 
 ## What's left
