@@ -107,6 +107,7 @@ Redtape will use your model's/models' validations to determine if the form data 
 
 We'd really like to add the following to make Redtape even easier for folks to plug n' play:
 
+* Map ActiveRecord errors (validation failures) to the matching form field
 * A Rails generator to add the app/forms and (test/spec)/forms directories
 * Handling of <object>_id params to further automate updates via forms
 * Cleaner handling of errors within nested objects
