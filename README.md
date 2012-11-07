@@ -66,7 +66,7 @@ So say we have a RegistrationForm with these fields:
       user = User.joins(:account).where("accounts.email = ?", email).first
       if user
         user.account.name = name
-      unless user
+      else
         account = Account.new(
           :name => name,
           :email => email
