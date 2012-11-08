@@ -30,8 +30,8 @@ module Redtape
           if model.invalid?
             own_your_errors_in(model)
           end
-        rescue MethodMissingError => e
-          fail MethodMissing Error, "#{self.class} is missing 'validates_and_saves :#{accessor}'"
+        rescue NoMethodError => e
+          fail NoMethodError, "#{self.class} is missing 'validates_and_saves :#{accessor}': #{e}"
         end
       end
     end
