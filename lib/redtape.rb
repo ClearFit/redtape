@@ -24,6 +24,7 @@ module Redtape
     end
 
     def models_correct
+      populate
       @@model_accessors.each do |accessor|
         begin
           model = send(accessor)
@@ -42,7 +43,6 @@ module Redtape
     end
 
     def save
-      populate
       if valid?
         persist!
       else
