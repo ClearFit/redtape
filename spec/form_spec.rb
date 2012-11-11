@@ -82,6 +82,14 @@ describe Redtape::Form do
         specify { subject.test_user.should be_valid }
         specify { subject.test_user.should be_persisted }
       end
+
+      context "after validating the form" do
+        before do
+          subject.valid?
+        end
+
+        specify { subject.test_user.should be_valid }
+      end
     end
 
     context "with invalid data" do
