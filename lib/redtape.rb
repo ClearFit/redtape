@@ -1,6 +1,7 @@
 require "redtape/version"
 
 require 'active_model'
+require 'active_support/core_ext/class/attribute'
 
 module Redtape
   class Form
@@ -8,13 +9,12 @@ module Redtape
     include ActiveModel::Conversion
     include ActiveModel::Validations
 
-    attr_accessor :model_accessors
-
     validate :models_correct
+    class_attribute :model_accessors
 
     def self.validates_and_saves(*args)
       attr_accessor *args
-      @@model_accessors = args
+      self.model_accessors = args
     end
 
     def initialize(attrs = {})
@@ -25,7 +25,7 @@ module Redtape
 
     def models_correct
       populate
-      @@model_accessors.each do |accessor|
+      self.class.model_accessors.each do |accessor|
         begin
           model = send(accessor)
           if model.invalid?
@@ -51,7 +51,7 @@ module Redtape
     end
 
     def persist!
-      @@model_accessors.each do |accessor|
+      self.class.model_accessors.each do |accessor|
         model = send(accessor)
         unless model.save
           return false
