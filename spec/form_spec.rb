@@ -112,4 +112,23 @@ describe Redtape::Form do
     end
   end
 
+  context "given another Form subclass" do
+    before do
+      Class.new(Redtape::Form) do
+        validates_and_saves :test_object
+      end.new(:test_object => :foo)
+    end
+
+    subject {
+      TestRegistrationForm.new
+    }
+
+    context "TestRegistrationForm still saves User" do
+      before do
+        subject.save
+      end
+
+      specify { subject.should_not be_valid }
+    end
+  end
 end
