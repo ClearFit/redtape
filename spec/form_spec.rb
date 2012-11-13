@@ -1,46 +1,4 @@
-require 'virtus'
-
-require 'redtape'
-require 'active_model'
-
-class TestUser
-  include Virtus
-
-  extend ActiveModel::Naming
-  include ActiveModel::Validations
-  include ActiveModel::Conversion
-
-  attribute :name, String
-
-  validates_presence_of :name
-  validate :name_contains_at_least_two_parts
-
-  def name_contains_at_least_two_parts
-    unless name =~ /.+ .+/
-      errors.add(:name, "should contain at least two parts")
-    end
-  end
-
-  def persisted?
-    valid?
-  end
-
-  def save
-    valid?
-  end
-end
-
-class TestRegistrationForm < Redtape::Form
-  validates_and_saves :test_user
-
-  attr_accessor :test_user
-
-  attr_accessor :first_name, :last_name
-
-  def populate
-    self.test_user = TestUser.new(:name => "#{first_name} #{last_name}")
-  end
-end
+require 'spec_helper'
 
 describe Redtape::Form do
   context "given a Form where the Form fields are a proper subset of the modeled fields" do
@@ -67,7 +25,7 @@ describe Redtape::Form do
   context "given a Form accepting a first and last name that creates a User" do
     context "with valid data" do
       subject {
-        TestRegistrationForm.new(
+        RegistrationForm.new(
           :first_name => "Evan",
           :last_name => "Light"
         )
@@ -79,8 +37,8 @@ describe Redtape::Form do
         end
 
         specify { subject.should be_valid }
-        specify { subject.test_user.should be_valid }
-        specify { subject.test_user.should be_persisted }
+        specify { subject.user.should be_valid }
+        specify { subject.user.should be_persisted }
       end
 
       context "after validating the form" do
@@ -88,13 +46,13 @@ describe Redtape::Form do
           subject.valid?
         end
 
-        specify { subject.test_user.should be_valid }
+        specify { subject.user.should be_valid }
       end
     end
 
     context "with invalid data" do
       subject {
-        TestRegistrationForm.new.tap do |f|
+        RegistrationForm.new.tap do |f|
           f.first_name = "Evan"
         end
       }
@@ -107,7 +65,7 @@ describe Redtape::Form do
         specify { subject.should_not be_valid }
         specify { subject.should_not be_persisted }
         specify { subject.errors.should have_key(:name) }
-        specify { subject.test_user.should_not be_valid }
+        specify { subject.user.should_not be_valid }
       end
     end
   end
@@ -120,10 +78,10 @@ describe Redtape::Form do
     end
 
     subject {
-      TestRegistrationForm.new
+      RegistrationForm.new
     }
 
-    context "TestRegistrationForm still saves User" do
+    context "RegistrationForm still saves User" do
       before do
         subject.save
       end
