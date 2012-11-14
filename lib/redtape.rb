@@ -2,6 +2,7 @@ require "redtape/version"
 
 require 'active_model'
 require 'active_support/core_ext/class/attribute'
+require 'active_support/core_ext/string/inflections'
 
 module Redtape
   class Form
@@ -15,14 +16,38 @@ module Redtape
     def self.validates_and_saves(*args)
       attr_accessor *args
       self.model_accessors = args
+
+      model_class = model_accessors.first.to_s.camelize.constantize
+
+      column_names = model_class.arel_table.columns.map { |c| ":#{c.name}" } - [":id"]
+
+      p column_names
+      instance_eval <<-EVAL
+        attr_accessor #{column_names.join(", ")}
+      EVAL
+
+      model_class.reflect_on_all_associations(:has_many).each do |association|
+        instance_eval <<-EVAL
+          attr_accessor :#{association.table_name}_attributes
+        EVAL
+      end
+
+      [:has_one, :belongs_to].each do |assoc_type|
+        nested_params_keys = model_class.reflect_on_all_associations(assoc_type).map { |a|
+          ":#{a.table_name.singularize}_attributes"
+        }
+        instance_eval <<-EVAL
+          attr_accessor #{nested_params_keys.join(", ")}
+        EVAL
+      end
     end
 
     def self.nested_accessible_attrs(attrs = {})
     end
 
     def initialize(attrs = {})
-      attrs.each do |k, v|
-        send("#{k}=", v)
+      attrs.each do |attr_name, v|
+        send("#{attr_name}=", v)
       end
     end
 
@@ -64,7 +89,7 @@ module Redtape
     end
 
     def populate
-      fail NotImplementedError, "Implement #populate in your subclass"
+#      fail NotImplementedError, "Implement #populate in your subclass"
     end
 
     private
