@@ -63,7 +63,7 @@ class RegistrationForm < Redtape::Form
 
   attr_accessor :user
 
-  attr_accessor :first_name, :last_name, :addresses_attributes
+  attr_accessor :first_name, :last_name
 
   def populate
     self.user = User.new(:name => "#{first_name} #{last_name}")
@@ -71,6 +71,8 @@ class RegistrationForm < Redtape::Form
 end
 
 class UserWithAddressesRegistrationForm < RegistrationForm
+  attr_accessor :addresses_attributes
+
   def populate
     super
 
