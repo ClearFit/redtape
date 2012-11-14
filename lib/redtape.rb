@@ -17,6 +17,9 @@ module Redtape
       self.model_accessors = args
     end
 
+    def self.nested_accessible_attrs(attrs = {})
+    end
+
     def initialize(attrs = {})
       attrs.each do |k, v|
         send("#{k}=", v)
