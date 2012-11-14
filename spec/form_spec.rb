@@ -11,14 +11,51 @@ describe Redtape::Form do
           context "in a nested belongs_to/has_one" do
             it "reports an error on the model as <model_name>_<field_name>"
           end
-          context "in a nested has_many" do
-            it "reports an error on the model as <model_name>_<field_name>"
-          end
         end
       end
 
       context "some field names overlap" do
       end
+    end
+  end
+
+  context "when #populate is not defined in the subclass" do
+    context "the default implementation" do
+      it "uses the value(s) passed to validate_and_save to locate the model params to use for population"
+      it "looks up the classified name for the symbol passes to validate_and_saves"
+    end
+  end
+
+  context "simulating a nested form from the view for a User with many Addresses" do
+    context "where the Address form fields adhere to Address column names" do
+      subject { UserWithAddressesRegistrationForm.new(fake_rails_params) }
+
+      let(:fake_rails_params) {
+        HashWithIndifferentAccess.new(
+          :first_name => "Evan",
+          :last_name => "Light",
+          :addresses_attributes => {
+            "0" => {
+              :address1 => "123 Foobar way",
+              :city     => "Foobar",
+              :state    => "MN",
+              :zipcode  => "12345"
+            },
+            "1" => {
+              :address1 => "124 Foobar way",
+              :city     => "Foobar",
+              :state    => "MN",
+              :zipcode  => "12345"
+            }
+          }
+        )
+      }
+
+      before do
+        subject.save
+      end
+
+      specify { subject.user.addresses.count.should == 2 }
     end
   end
 
@@ -51,11 +88,7 @@ describe Redtape::Form do
     end
 
     context "with invalid data" do
-      subject {
-        RegistrationForm.new.tap do |f|
-          f.first_name = "Evan"
-        end
-      }
+      subject { RegistrationForm.new(:first_name => "Evan") }
 
       context "after saving the form" do
         before do
@@ -77,9 +110,7 @@ describe Redtape::Form do
       end.new(:test_object => :foo)
     end
 
-    subject {
-      RegistrationForm.new
-    }
+    subject { RegistrationForm.new }
 
     context "RegistrationForm still saves User" do
       before do
