@@ -18,7 +18,6 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "virtus"
   gem.add_development_dependency "rspec"
   gem.add_development_dependency "rails"
-  gem.add_development_dependency "debugger"
 
   gem.add_runtime_dependency "activemodel"
   gem.add_runtime_dependency "activesupport"
