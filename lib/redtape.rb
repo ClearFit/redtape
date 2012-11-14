@@ -21,10 +21,11 @@ module Redtape
       attrs.each do |k, v|
         send("#{k}=", v)
       end
+
+      populate
     end
 
     def models_correct
-      populate
       self.class.model_accessors.each do |accessor|
         begin
           model = send(accessor)
@@ -62,6 +63,15 @@ module Redtape
 
     def populate
       fail NotImplementedError, "Implement #populate in your subclass"
+    end
+
+    def assign_values(attrs = {})
+      attrs.each do |k, v|
+        send("#{k}=", v)
+      end
+
+      assign
+      self
     end
 
     private
