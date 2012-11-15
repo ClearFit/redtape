@@ -1,24 +1,6 @@
 require 'spec_helper'
 
 describe Redtape::Form do
-  context "given a Form where the Form fields are a proper subset of the modeled fields" do
-    context "where across all involved objects" do
-      context "all field names are unique" do
-        context "and the data is invalid" do
-          context "in a root object" do
-            it "reports an error on the model as <field_name>"
-          end
-          context "in a nested belongs_to/has_one" do
-            it "reports an error on the model as <model_name>_<field_name>"
-          end
-        end
-      end
-
-      context "some field names overlap" do
-      end
-    end
-  end
-
   context "given a Form accepting a first and last name that creates a User" do
     context "with valid data" do
       subject {
