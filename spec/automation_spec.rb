@@ -45,7 +45,7 @@ describe Redtape::Form do
             :city       => "Foobar",
             :state      => "MN",
             :zipcode    => "12345",
-            :alarm_code => "00000"
+            :alarm_code => "12345"
           }
         }
       )
@@ -94,16 +94,19 @@ describe Redtape::Form do
         end
 
         specify do
+          binding.pry
           User.last.addresses.first.address1.should ==
             update_params[:addresses_attributes]["0"][:address1]
         end
 
         specify do
+          # NOTE: bogus test due to previous_changes
           User.last.previous_changes.should_not include(:social_security_number)
         end
 
         specify do
           Address.all.each do |a|
+          # NOTE: bogus test due to previous_changes
             a.previous_changes.should_not include(:alarm_code)
           end
         end

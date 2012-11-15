@@ -9,6 +9,8 @@ module Redtape
     include ActiveModel::Conversion
     include ActiveModel::Validations
 
+    ATTRIBUTES_KEY_REGEXP = /^(.+)_attributes$/
+
     class_attribute :model_accessor
     attr_reader     :params
 
@@ -27,9 +29,9 @@ module Redtape
     end
 
     def models_correct
-      populate
+      model = populate(params, self.class.model_accessor)
+      instance_variable_set("@#{self.class.model_accessor}", model)
       begin
-        model = send(model_accessor)
         if model.invalid?
           own_your_errors_in(model)
         end
@@ -56,26 +58,45 @@ module Redtape
       model.save
     end
 
-    def populate
-      model_class = self.class.model_accessor.to_s.camelize.constantize
-      root =
-        if params[:id]
-          model_class.send(:find, params[:id])
+    def populate(params_subset, association_name)
+      model_class = association_name.to_s.singularize.camelize.constantize
+      model =
+        if params_subset[:id]
+          model_class.send(:find, params_subset[:id])
         else
           model_class.new
         end
 
       # #merge! didn't work here....
-      root.attributes = root.attributes.merge(root_level_params)
+      model.attributes = model.attributes.merge(
+        params_for_current_nesting_level_only(params_subset)
+      )
 
-      instance_variable_set("@#{model_accessor}", root)
+      params_subset.each do |key, value|
+        next unless key =~ ATTRIBUTES_KEY_REGEXP
+        nested_association_name = $1
+        # TODO: handle has_one
+        # TODO :handle belongs_to
 
+        children =
+          if value.keys.all? { |k| k =~ /^\d+$/ }
+            value.map { |_, has_many_attrs|
+              populate(has_many_attrs, nested_association_name)
+            }
+          end
+        binding.pry
+
+        # nested_association_name is already singular or plural as appropriate
+        model.send("#{nested_association_name}=", children)
+      end
+
+      model
     end
 
     private
 
-    def root_level_params
-      @root_level_params ||= params.dup.reject { |_, v| v.is_a? Hash }
+    def params_for_current_nesting_level_only(params_subset)
+      params_subset.dup.reject { |_, v| v.is_a? Hash }
     end
 
     def own_your_errors_in(model)
