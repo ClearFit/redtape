@@ -9,34 +9,32 @@ module Redtape
     include ActiveModel::Conversion
     include ActiveModel::Validations
 
-    validate :models_correct
-    class_attribute :model_accessors
+    class_attribute :model_accessor
+    attr_reader     :params
 
-    def self.validates_and_saves(*args)
-      attr_accessor *args
-      self.model_accessors = args
+    validate        :models_correct
+
+    def self.validates_and_saves(accessor)
+      attr_reader accessor
+      self.model_accessor = accessor
     end
 
     def self.nested_accessible_attrs(attrs = {})
     end
 
     def initialize(attrs = {})
-      attrs.each do |k, v|
-        send("#{k}=", v)
-      end
+      @params = attrs
     end
 
     def models_correct
       populate
-      self.class.model_accessors.each do |accessor|
-        begin
-          model = send(accessor)
-          if model.invalid?
-            own_your_errors_in(model)
-          end
-        rescue NoMethodError => e
-          fail NoMethodError, "#{self.class} is missing 'validates_and_saves :#{accessor}': #{e}"
+      begin
+        model = send(model_accessor)
+        if model.invalid?
+          own_your_errors_in(model)
         end
+      rescue NoMethodError => e
+        fail NoMethodError, "#{self.class} is missing 'validates_and_saves :#{model_accessor}': #{e}"
       end
     end
 
@@ -54,25 +52,37 @@ module Redtape
     end
 
     def persist!
-      self.class.model_accessors.each do |accessor|
-        model = send(accessor)
-        unless model.save
-          return false
-        end
-      end
-      true
+      model = send(self.class.model_accessor)
+      model.save
     end
 
     def populate
-      fail NotImplementedError, "Implement #populate in your subclass"
+      model_class = self.class.model_accessor.to_s.camelize.constantize
+      root =
+        if params[:id]
+          model_class.send(:find, params[:id])
+        else
+          model_class.new
+        end
+
+      # #merge! didn't work here....
+      root.attributes = root.attributes.merge(root_level_params)
+
+      instance_variable_set("@#{model_accessor}", root)
+
     end
 
     private
+
+    def root_level_params
+      @root_level_params ||= params.dup.reject { |_, v| v.is_a? Hash }
+    end
 
     def own_your_errors_in(model)
       model.errors.each do |k, v|
         errors.add(k, v)
       end
     end
+
   end
 end
