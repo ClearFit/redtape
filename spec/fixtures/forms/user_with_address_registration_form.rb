@@ -1,3 +1,5 @@
+require_relative 'registration_form'
+
 class UserWithAddressesRegistrationForm < RegistrationForm
   attr_accessor :addresses_attributes
 
