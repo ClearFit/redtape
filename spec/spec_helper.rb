@@ -5,9 +5,12 @@ require 'active_record'
 
 ActiveRecord::Base.establish_connection(:adapter => 'sqlite3', :database => 'development.db')
 
-['./spec/fixtures/models/*', './spec/fixtures/forms/*'].each do |path|
-  Dir.glob(path).each do |r|
-    require r
+
+%w[models forms].each do |path|
+  Dir.glob("./spec/fixtures/#{path}/*").each do |r|
+    # Don't ask
+    r.gsub!("spec", "")
+    require_relative r
   end
 end
 
