@@ -8,7 +8,7 @@ ActiveRecord::Base.establish_connection(:adapter => 'sqlite3', :database => 'dev
 
 %w[models forms].each do |path|
   Dir.glob("./spec/fixtures/#{path}/*").each do |r|
-    load r
+    require r[0...-3]
   end
 end
 
