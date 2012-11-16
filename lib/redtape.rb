@@ -26,8 +26,7 @@ module Redtape
 
     def initialize(attrs = {})
       @params = attrs
-      @updated_records = []
-      @new_records = []
+      @records_to_save = []
     end
 
     def models_correct
@@ -53,7 +52,7 @@ module Redtape
         begin
           ActiveRecord::Base.transaction do
             persist!
-            @updated_records.each(&:save!)
+            @records_to_save.each(&:save!)
           end
         rescue
           # TODO: This feels so wrong...
@@ -110,17 +109,6 @@ module Redtape
       end
     end
 
-    def nested_model_instance_given(args = {})
-      params_subset, association_name = args.values_at(:params, :association_name)
-
-      model_class = association_name.to_s.singularize.camelize.constantize
-      if params_subset[:id]
-        model_class.send(:find, params_subset[:id])
-      else
-        model_class.new
-      end
-    end
-
     def add_attributes_to(model, args = {})
       # #merge! didn't work here....
       model.attributes = model.attributes.merge(
@@ -138,8 +126,7 @@ module Redtape
     end
 
     def before_validation
-      @updated_records.clear
-      @new_records.clear
+      @records_to_save.clear
 
       model = find_or_create_model
       populate(params, model)
@@ -152,17 +139,20 @@ module Redtape
 
       association = model.send(association_name)
 
-      children = association.map do |child_model|
-        update_attrs = has_many_attrs_array.find { |a| a[:id] == child_model.id }
-        has_many_attrs_array.delete(update_attrs)
-        populate(update_attrs, child_model)
-        @updated_records << child_model
-      end
+      has_many_attrs_array.each do |record_attrs|
+        child_model =
+          if record_attrs[:id]
+            association.find(record_attrs[:id])
+          else
+            association.build
+          end
 
-      has_many_attrs_array.each do |new_record_attrs|
-        new_nested_model = populate(new_record_attrs, association.build)
-        @new_records << new_nested_model
-        association.send("<<", new_nested_model)
+        if child_model.new_record?
+          association.send("<<", child_model)
+        end
+        populate(record_attrs, child_model)
+
+        @records_to_save << child_model
       end
     end
   end

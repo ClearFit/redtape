@@ -14,7 +14,7 @@ class UserWithAddressesRegistrationForm < RegistrationForm
         address =
           if address_attrs[:id]
             m = model.addresses.map { |a| a if a.id == address_attrs[:id] }.compact.first
-            @updated_records << m
+            @records_to_save << m
             m
           else
             Address.new.tap do |a|
