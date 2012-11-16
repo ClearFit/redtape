@@ -30,16 +30,25 @@ module Redtape
       @new_records = []
     end
 
-    def models_correct
+    def can_find_model?(args = {})
       model_class = self.class.model_accessor.to_s.camelize.constantize
-      model =
-        if params[:id]
-          model_class.send(:find, params[:id])
-        else
-          model_class.new
-        end
+
+    end
+
+    def find_or_create_model
+      model_class = self.class.model_accessor.to_s.camelize.constantize
+      if params[:id]
+        model_class.send(:find, params[:id])
+      else
+        model_class.new
+      end
+    end
+
+    def models_correct
       @updated_records.clear
       @new_records.clear
+
+      model = find_or_create_model
       populate(params, model)
 
       instance_variable_set("@#{self.class.model_accessor}", model)
