@@ -99,35 +99,26 @@ module Redtape
       add_attributes_to(model, :attributes => attributes)
 
       attributes.each do |key, value|
-        next unless key =~ ATTRIBUTES_KEY_REGEXP
-        nested_association_name = $1
+        next unless has_many_association_attrs?(key)
+        nested_association_name = association_name_in(key)
         # TODO: handle has_one
         # TODO :handle belongs_to
 
-        if value.keys.all? { |k| k =~ /^\d+$/ }
-          association = model.send(nested_association_name)
-
-          record_attrs_array = value.map { |_, v| v }
-
-          children = association.map do |child_model|
-            update_attrs = record_attrs_array.find { |a| a[:id] == child_model.id }
-            record_attrs_array.delete(update_attrs)
-            populate(update_attrs, child_model)
-            @updated_records << child_model
-          end
-
-          record_attrs_array.each do |new_record_attrs|
-            new_nested_model = populate(new_record_attrs, association.build)
-            @new_records << new_nested_model
-            association.send("<<", new_nested_model)
-          end
-        end
+        populate_for_has_many(nested_association_name)
       end
 
       model
     end
 
     private
+
+    def has_many_association_attrs?(key)
+      key =~ ATTRIBUTES_KEY_REGEXP
+    end
+
+    def association_name_in(key)
+      ATTRIBUTES_KEY_REGEXP.match(key)[0]
+    end
 
     def params_for_current_nesting_level_only(params_subset)
       params_subset.dup.reject { |_, v| v.is_a? Hash }
@@ -155,6 +146,27 @@ module Redtape
       model.attributes = model.attributes.merge(
         params_for_current_nesting_level_only(args[:attributes])
       )
+    end
+
+    def populate_for_has_many(nested_association_name)
+      if value.keys.all? { |k| k =~ /^\d+$/ }
+        association = model.send(nested_association_name)
+
+        record_attrs_array = value.map { |_, v| v }
+
+        children = association.map do |child_model|
+          update_attrs = record_attrs_array.find { |a| a[:id] == child_model.id }
+          record_attrs_array.delete(update_attrs)
+          populate(update_attrs, child_model)
+          @updated_records << child_model
+        end
+
+        record_attrs_array.each do |new_record_attrs|
+          new_nested_model = populate(new_record_attrs, association.build)
+          @new_records << new_nested_model
+          association.send("<<", new_nested_model)
+        end
+      end
     end
   end
 end
