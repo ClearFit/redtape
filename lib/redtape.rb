@@ -95,13 +95,10 @@ module Redtape
       model.save
     end
 
-    def populate(params_subset, model)
-      # #merge! didn't work here....
-      model.attributes = model.attributes.merge(
-        params_for_current_nesting_level_only(params_subset)
-      )
+    def populate(attributes, model)
+      add_attributes_to(model, :attributes => attributes)
 
-      params_subset.each do |key, value|
+      attributes.each do |key, value|
         next unless key =~ ATTRIBUTES_KEY_REGEXP
         nested_association_name = $1
         # TODO: handle has_one
@@ -151,8 +148,13 @@ module Redtape
       else
         model_class.new
       end
+    end
 
-
+    def add_attributes_to(model, args = {})
+      # #merge! didn't work here....
+      model.attributes = model.attributes.merge(
+        params_for_current_nesting_level_only(args[:attributes])
+      )
     end
   end
 end
