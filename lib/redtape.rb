@@ -100,11 +100,14 @@ module Redtape
 
       attributes.each do |key, value|
         next unless has_many_association_attrs?(key)
-        nested_association_name = association_name_in(key)
+
         # TODO: handle has_one
         # TODO :handle belongs_to
-
-        populate_for_has_many(nested_association_name)
+        populate_has_many(
+          :in_association => association_name_in(key),
+          :for_model      => model,
+          :using          => value
+        )
       end
 
       model
@@ -117,7 +120,7 @@ module Redtape
     end
 
     def association_name_in(key)
-      ATTRIBUTES_KEY_REGEXP.match(key)[0]
+      ATTRIBUTES_KEY_REGEXP.match(key)[1]
     end
 
     def params_for_current_nesting_level_only(params_subset)
@@ -148,9 +151,11 @@ module Redtape
       )
     end
 
-    def populate_for_has_many(nested_association_name)
+    def populate_has_many(args = {})
+      model, association_name, value = args.values_at(:for_model, :in_association, :using)
+
       if value.keys.all? { |k| k =~ /^\d+$/ }
-        association = model.send(nested_association_name)
+        association = model.send(association_name)
 
         record_attrs_array = value.map { |_, v| v }
 
