@@ -3,6 +3,8 @@ require "redtape/version"
 require 'active_model'
 require 'active_support/core_ext/class/attribute'
 
+require 'active_record'
+
 module Redtape
   class Form
     extend ActiveModel::Naming
@@ -11,10 +13,11 @@ module Redtape
 
     ATTRIBUTES_KEY_REGEXP = /^(.+)_attributes$/
 
-    class_attribute :model_accessor
-    attr_reader     :params
+    class_attribute   :model_accessor
+    attr_reader       :params
 
-    validate        :models_correct
+    validate          :models_correct
+
 
     def self.validates_and_saves(accessor)
       attr_reader accessor
@@ -44,7 +47,7 @@ module Redtape
       end
     end
 
-    def models_correct
+    def before_validation
       @updated_records.clear
       @new_records.clear
 
@@ -52,7 +55,12 @@ module Redtape
       populate(params, model)
 
       instance_variable_set("@#{self.class.model_accessor}", model)
+    end
 
+    def models_correct
+      before_validation
+
+      model = instance_variable_get("@#{self.class.model_accessor}")
       begin
         if model.invalid?
           own_your_errors_in(model)
