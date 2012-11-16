@@ -26,11 +26,24 @@ module Redtape
 
     def initialize(attrs = {})
       @params = attrs
+      @updated_records = []
+      @new_records = []
     end
 
     def models_correct
-      model = populate(params, self.class.model_accessor)
+      model_class = self.class.model_accessor.to_s.camelize.constantize
+      model =
+        if params[:id]
+          model_class.send(:find, params[:id])
+        else
+          model_class.new
+        end
+      @updated_records.clear
+      @new_records.clear
+      populate(params, model)
+
       instance_variable_set("@#{self.class.model_accessor}", model)
+
       begin
         if model.invalid?
           own_your_errors_in(model)
@@ -47,7 +60,14 @@ module Redtape
 
     def save
       if valid?
-        persist!
+        begin
+          ActiveRecord::Base.transaction do
+            persist!
+            @updated_records.each(&:save!)
+          end
+        rescue
+          # TODO: This feels so wrong...
+        end
       else
         false
       end
@@ -58,15 +78,7 @@ module Redtape
       model.save
     end
 
-    def populate(params_subset, association_name)
-      model_class = association_name.to_s.singularize.camelize.constantize
-      model =
-        if params_subset[:id]
-          model_class.send(:find, params_subset[:id])
-        else
-          model_class.new
-        end
-
+    def populate(params_subset, model)
       # #merge! didn't work here....
       model.attributes = model.attributes.merge(
         params_for_current_nesting_level_only(params_subset)
@@ -78,16 +90,24 @@ module Redtape
         # TODO: handle has_one
         # TODO :handle belongs_to
 
-        children =
-          if value.keys.all? { |k| k =~ /^\d+$/ }
-            value.map { |_, has_many_attrs|
-              populate(has_many_attrs, nested_association_name)
-            }
-          end
-        binding.pry
+        if value.keys.all? { |k| k =~ /^\d+$/ }
+          association = model.send(nested_association_name)
 
-        # nested_association_name is already singular or plural as appropriate
-        model.send("#{nested_association_name}=", children)
+          record_attrs_array = value.map { |_, v| v }
+
+          children = association.map do |child_model|
+            update_attrs = record_attrs_array.find { |a| a[:id] == child_model.id }
+            record_attrs_array.delete(update_attrs)
+            populate(update_attrs, child_model)
+            @updated_records << child_model
+          end
+
+          record_attrs_array.each do |new_record_attrs|
+            new_nested_model = populate(new_record_attrs, association.build)
+            @new_records << new_nested_model
+            association.send("<<", new_nested_model)
+          end
+        end
       end
 
       model
@@ -105,5 +125,17 @@ module Redtape
       end
     end
 
+    def nested_model_instance_given(args = {})
+      params_subset, association_name = args.values_at(:params, :association_name)
+
+      model_class = association_name.to_s.singularize.camelize.constantize
+      if params_subset[:id]
+        model_class.send(:find, params_subset[:id])
+      else
+        model_class.new
+      end
+
+
+    end
   end
 end

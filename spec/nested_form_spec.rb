@@ -42,11 +42,11 @@ describe Redtape::Form do
         before do
           params = create_params
           u = User.create!(:name => "#{params[:first_name]} #{params[:last_name]}")
-          Address.create!(
-            params[:addresses_attributes]["0"].merge(:user => u)
+          @address1 = Address.create!(
+            params[:addresses_attributes]["0"].merge(:user_id => u.id)
           )
-          Address.create!(
-            params[:addresses_attributes]["1"].merge(:user => u)
+          @address2 = Address.create!(
+            params[:addresses_attributes]["1"].merge(:user_id => u.id)
           )
         end
 
@@ -57,12 +57,14 @@ describe Redtape::Form do
             :last_name  => "Not-so-bright-light",
             :addresses_attributes => {
               "0" => {
+                :id       => @address1.id,
                 :address1 => "456 Foobar way",
                 :city     => "Foobar",
                 :state    => "MN",
                 :zipcode  => "12345"
               },
               "1" => {
+                :id       => @address2.id,
                 :address1 => "124 Foobar way",
                 :city     => "Foobar",
                 :state    => "MN",

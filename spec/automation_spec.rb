@@ -94,7 +94,6 @@ describe Redtape::Form do
         end
 
         specify do
-          binding.pry
           User.last.addresses.first.address1.should ==
             update_params[:addresses_attributes]["0"][:address1]
         end
