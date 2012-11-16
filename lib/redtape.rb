@@ -29,19 +29,6 @@ module Redtape
       @records_to_save = []
     end
 
-    def models_correct
-      before_validation
-
-      model = instance_variable_get("@#{self.class.model_accessor}")
-      begin
-        if model.invalid?
-          own_your_errors_in(model)
-        end
-      rescue NoMethodError => e
-        fail NoMethodError, "#{self.class} is missing 'validates_and_saves :#{model_accessor}': #{e}"
-      end
-    end
-
     # Forms are never themselves persisted
     def persisted?
       false
@@ -67,8 +54,29 @@ module Redtape
       model.save
     end
 
+    protected
+
+    # API hook used to look up an existing record given its AssociationProxy
+    # and all of the form parameters relevant to this record.
+    def find_record_given(attrs, args = {})
+      association = args[:on_association]
+
+      association.find(attrs[:id])
+    end
+
+    # API hook to map request parameters (truncated from the attributes for this
+    # record on down) onto the provided record instance.
+    def populate_individual_record(record, attrs)
+      # #merge! didn't work here....
+      record.attributes = record.attributes.merge(
+        params_for_current_nesting_level_only(attrs)
+      )
+    end
+
+    private
+
     def populate(attributes, model)
-      add_attributes_to(model, :attributes => attributes)
+      populate_individual_record(model, attributes)
 
       attributes.each do |key, value|
         next unless has_many_association_attrs?(key)
@@ -85,7 +93,18 @@ module Redtape
       model
     end
 
-    private
+    def models_correct
+      before_validation
+
+      model = instance_variable_get("@#{self.class.model_accessor}")
+      begin
+        if model.invalid?
+          own_your_errors_in(model)
+        end
+      rescue NoMethodError => e
+        fail NoMethodError, "#{self.class} is missing 'validates_and_saves :#{model_accessor}': #{e}"
+      end
+    end
 
     def has_many_attrs_array_from(fields_for_hash)
       fields_for_hash.values.clone
@@ -109,19 +128,27 @@ module Redtape
       end
     end
 
-    def add_attributes_to(model, args = {})
-      # #merge! didn't work here....
-      model.attributes = model.attributes.merge(
-        params_for_current_nesting_level_only(args[:attributes])
-      )
-    end
-
+    # Factory method for root object
     def find_or_create_model
       model_class = self.class.model_accessor.to_s.camelize.constantize
       if params[:id]
         model_class.send(:find, params[:id])
       else
         model_class.new
+      end
+    end
+
+    # Factory method for child objects
+    def find_or_initialize_record_given(attrs, args = {})
+      association = args[:for_associaton]
+      # TODO: navigate back to the model through the association. Probably AR nastiness...
+
+      if attrs[:id]
+        m = find_record_given(attrs, :on_association => association)
+        @records_to_save << m
+        m
+      else
+        association.build
       end
     end
 
@@ -140,19 +167,16 @@ module Redtape
       association = model.send(association_name)
 
       has_many_attrs_array.each do |record_attrs|
-        child_model =
-          if record_attrs[:id]
-            association.find(record_attrs[:id])
-          else
-            association.build
-          end
+        child_model = find_or_initialize_record_given(
+          record_attrs,
+          :for_associaton => association
+        )
 
         if child_model.new_record?
           association.send("<<", child_model)
         end
-        populate(record_attrs, child_model)
 
-        @records_to_save << child_model
+        populate_individual_record(child_model, record_attrs)
       end
     end
   end

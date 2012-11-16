@@ -3,7 +3,9 @@ class RegistrationForm < Redtape::Form
 
   attr_accessor :first_name, :last_name
 
-  def populate(params_subset, model)
-    model.name = "#{params_subset[:first_name]} #{params_subset[:last_name]}"
+  def populate_individual_record(record, attrs)
+    if record.is_a?(User)
+      record.name = "#{attrs[:first_name]} #{attrs[:last_name]}"
+    end
   end
 end
