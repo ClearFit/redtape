@@ -5,7 +5,5 @@ class RegistrationForm < Redtape::Form
 
   def populate(params_subset, model)
     model.name = "#{params_subset[:first_name]} #{params_subset[:last_name]}"
-
-    model
   end
 end
