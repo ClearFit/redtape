@@ -106,7 +106,7 @@ module Redtape
         populate_has_many(
           :in_association => association_name_in(key),
           :for_model      => model,
-          :using          => value
+          :using          => has_many_attrs_array_from(value)
         )
       end
 
@@ -114,6 +114,10 @@ module Redtape
     end
 
     private
+
+    def has_many_attrs_array_from(fields_for_hash)
+      fields_for_hash.values.clone
+    end
 
     def has_many_association_attrs?(key)
       key =~ ATTRIBUTES_KEY_REGEXP
@@ -152,25 +156,21 @@ module Redtape
     end
 
     def populate_has_many(args = {})
-      model, association_name, value = args.values_at(:for_model, :in_association, :using)
+      model, association_name, has_many_attrs_array = args.values_at(:for_model, :in_association, :using)
 
-      if value.keys.all? { |k| k =~ /^\d+$/ }
-        association = model.send(association_name)
+      association = model.send(association_name)
 
-        record_attrs_array = value.map { |_, v| v }
+      children = association.map do |child_model|
+        update_attrs = has_many_attrs_array.find { |a| a[:id] == child_model.id }
+        has_many_attrs_array.delete(update_attrs)
+        populate(update_attrs, child_model)
+        @updated_records << child_model
+      end
 
-        children = association.map do |child_model|
-          update_attrs = record_attrs_array.find { |a| a[:id] == child_model.id }
-          record_attrs_array.delete(update_attrs)
-          populate(update_attrs, child_model)
-          @updated_records << child_model
-        end
-
-        record_attrs_array.each do |new_record_attrs|
-          new_nested_model = populate(new_record_attrs, association.build)
-          @new_records << new_nested_model
-          association.send("<<", new_nested_model)
-        end
+      has_many_attrs_array.each do |new_record_attrs|
+        new_nested_model = populate(new_record_attrs, association.build)
+        @new_records << new_nested_model
+        association.send("<<", new_nested_model)
       end
     end
   end
