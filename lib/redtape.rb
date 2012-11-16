@@ -24,37 +24,10 @@ module Redtape
       self.model_accessor = accessor
     end
 
-    def self.nested_accessible_attrs(attrs = {})
-    end
-
     def initialize(attrs = {})
       @params = attrs
       @updated_records = []
       @new_records = []
-    end
-
-    def can_find_model?(args = {})
-      model_class = self.class.model_accessor.to_s.camelize.constantize
-
-    end
-
-    def find_or_create_model
-      model_class = self.class.model_accessor.to_s.camelize.constantize
-      if params[:id]
-        model_class.send(:find, params[:id])
-      else
-        model_class.new
-      end
-    end
-
-    def before_validation
-      @updated_records.clear
-      @new_records.clear
-
-      model = find_or_create_model
-      populate(params, model)
-
-      instance_variable_set("@#{self.class.model_accessor}", model)
     end
 
     def models_correct
@@ -153,6 +126,25 @@ module Redtape
       model.attributes = model.attributes.merge(
         params_for_current_nesting_level_only(args[:attributes])
       )
+    end
+
+    def find_or_create_model
+      model_class = self.class.model_accessor.to_s.camelize.constantize
+      if params[:id]
+        model_class.send(:find, params[:id])
+      else
+        model_class.new
+      end
+    end
+
+    def before_validation
+      @updated_records.clear
+      @new_records.clear
+
+      model = find_or_create_model
+      populate(params, model)
+
+      instance_variable_set("@#{self.class.model_accessor}", model)
     end
 
     def populate_has_many(args = {})
