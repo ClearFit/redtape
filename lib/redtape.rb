@@ -141,12 +141,11 @@ module Redtape
     # Factory method for child objects
     def find_or_initialize_record_given(attrs, args = {})
       association = args[:for_associaton]
-      # TODO: navigate back to the model through the association. Probably AR nastiness...
 
       if attrs[:id]
-        m = find_record_given(attrs, :on_association => association)
-        @records_to_save << m
-        m
+        find_record_given(attrs, :on_association => association).tap do |record|
+          @records_to_save << record
+        end
       else
         association.build
       end
