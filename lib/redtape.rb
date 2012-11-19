@@ -54,25 +54,47 @@ module Redtape
 
     # API hook used to look up an existing record given its AssociationProxy
     # and all of the form parameters relevant to this record.
-    def find_record_given(attrs, args = {})
+    def find_associated_model(attrs, args = {})
       association = args[:on_association]
 
       association.find(attrs[:id])
     end
 
+
     # API hook to map request parameters (truncated from the attributes for this
     # record on down) onto the provided record instance.
     def populate_individual_record(record, attrs)
       # #merge! didn't work here....
-      record.attributes = record.attributes.merge(
-        params_for_current_nesting_level_only(attrs)
-      )
+      record.attributes = record.attributes.merge(attrs)
     end
 
     private
 
-    def populate(attributes, model)
-      populate_individual_record(model, attributes)
+    def params_for_current_nesting_level_only(params_subset)
+      params_subset.dup.reject { |_, v| v.is_a? Hash }
+    end
+
+    def params_for_current_nesting_level_only(params_subset)
+      params_subset.dup.reject { |_, v| v.is_a? Hash }
+    end
+
+    def association_name_in(key)
+      ATTRIBUTES_KEY_REGEXP.match(key)[1]
+    end
+
+    def has_many_attrs_array_from(fields_for_hash)
+      fields_for_hash.values.clone
+    end
+
+    def has_many_association_attrs?(key)
+      key =~ ATTRIBUTES_KEY_REGEXP
+    end
+
+    def populate(model, attributes)
+      populate_individual_record(
+        model,
+        params_for_current_nesting_level_only(attributes)
+      )
 
       attributes.each do |key, value|
         next unless has_many_association_attrs?(key)
@@ -89,6 +111,15 @@ module Redtape
       model
     end
 
+    def before_validation
+      @records_to_save.clear
+
+      model = find_or_create_root_model
+      populate(model, params)
+
+      instance_variable_set("@#{self.class.model_accessor}", model)
+    end
+
     def models_correct
       before_validation
 
@@ -102,22 +133,7 @@ module Redtape
       end
     end
 
-    def has_many_attrs_array_from(fields_for_hash)
-      fields_for_hash.values.clone
-    end
-
-    def has_many_association_attrs?(key)
-      key =~ ATTRIBUTES_KEY_REGEXP
-    end
-
-    def association_name_in(key)
-      ATTRIBUTES_KEY_REGEXP.match(key)[1]
-    end
-
-    def params_for_current_nesting_level_only(params_subset)
-      params_subset.dup.reject { |_, v| v.is_a? Hash }
-    end
-
+    # TODO: Do we even needs this if each model has its own errors and the caller is using forms_for and fields_for?
     def own_your_errors_in(model)
       model.errors.each do |k, v|
         errors.add(k, v)
@@ -125,7 +141,7 @@ module Redtape
     end
 
     # Factory method for root object
-    def find_or_create_model
+    def find_or_create_root_model
       model_class = self.class.model_accessor.to_s.camelize.constantize
       if params[:id]
         model_class.send(:find, params[:id])
@@ -134,26 +150,18 @@ module Redtape
       end
     end
 
-    # Factory method for child objects
-    def find_or_initialize_record_given(attrs, args = {})
+    # Factory method for associated objects
+    def find_or_initialize_associated_model(attrs, args = {})
       association = args[:for_associaton]
 
       if attrs[:id]
-        find_record_given(attrs, :on_association => association).tap do |record|
+        find_associated_model(attrs, :on_association => association).tap do |record|
           @records_to_save << record
         end
       else
+        # TODO: only works for has_many. Need to handle has_one and belongs_to.
         association.build
       end
-    end
-
-    def before_validation
-      @records_to_save.clear
-
-      model = find_or_create_model
-      populate(params, model)
-
-      instance_variable_set("@#{self.class.model_accessor}", model)
     end
 
     def populate_has_many(args = {})
@@ -162,7 +170,7 @@ module Redtape
       association = model.send(association_name)
 
       has_many_attrs_array.each do |record_attrs|
-        child_model = find_or_initialize_record_given(
+        child_model = find_or_initialize_associated_model(
           record_attrs,
           :for_associaton => association
         )
@@ -171,8 +179,15 @@ module Redtape
           association.send("<<", child_model)
         end
 
-        populate_individual_record(child_model, record_attrs)
+        populate_individual_record(
+          child_model,
+          params_for_current_nesting_level_only(record_attrs)
+        )
       end
+    end
+
+    def params_for_current_nesting_level_only(attrs)
+      attrs.dup.reject { |_, v| v.is_a? Hash }
     end
   end
 end
