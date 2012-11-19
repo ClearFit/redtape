@@ -38,7 +38,8 @@ module Redtape
       if valid?
         begin
           ActiveRecord::Base.transaction do
-            persist!
+            model = send(self.class.model_accessor)
+            model.save!
             @records_to_save.each(&:save!)
           end
         rescue
@@ -47,11 +48,6 @@ module Redtape
       else
         false
       end
-    end
-
-    def persist!
-      model = send(self.class.model_accessor)
-      model.save
     end
 
     protected
