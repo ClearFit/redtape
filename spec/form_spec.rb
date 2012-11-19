@@ -4,10 +4,12 @@ describe Redtape::Form do
   context "given a Form accepting a first and last name that creates a User" do
     context "with valid data" do
       subject {
-        RegistrationForm.new(
+        RegistrationForm.new({
           :first_name => "Evan",
           :last_name => "Light"
-        )
+        }, {
+          :factory_class => UserFactory
+        })
       }
 
       context "after saving the form" do
@@ -30,7 +32,7 @@ describe Redtape::Form do
     end
 
     context "with invalid data" do
-      subject { RegistrationForm.new(:first_name => "Evan") }
+      subject { RegistrationForm.new({:first_name => "Evan"}, :factory_class => UserFactory) }
 
       context "after saving the form" do
         before do
@@ -52,7 +54,7 @@ describe Redtape::Form do
       end.new(:test_object => :foo)
     end
 
-    subject { RegistrationForm.new }
+    subject { RegistrationForm.new({}, :factory_class => UserFactory) }
 
     context "RegistrationForm still saves User" do
       before do

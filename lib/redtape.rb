@@ -23,9 +23,9 @@ module Redtape
       self.model_accessor = accessor
     end
 
-    def initialize(attrs = {})
+    def initialize(attrs = {}, args = { :factory_class => ModelFactory })
       @params = attrs
-      @records_to_save = []
+      @factory = args[:factory_class].new(self.class.model_accessor)
     end
 
     # Forms are never themselves persisted
@@ -52,20 +52,7 @@ module Redtape
     private
 
     def before_validation
-      @records_to_save.clear
-
-      model_accessor = self.class.model_accessor
-      model_class_name = model_accessor.to_s.camelize
-      factory_class =
-        begin
-          "#{model_class_name}Factory".constantize
-        rescue
-          ModelFactory
-        end
-
-      @factory = factory_class.new(model_accessor)
       model = @factory.populate_model_using(params)
-
       instance_variable_set("@#{self.class.model_accessor}", model)
     end
 

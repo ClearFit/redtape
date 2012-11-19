@@ -25,7 +25,7 @@ describe Redtape::Form do
   context "Creating a user" do
     context "where simulating a nested form from the view for a User with many Addresses" do
       context "where the Address form fields adhere to Address column names" do
-        subject { RegistrationForm.new(create_params) }
+        subject { RegistrationForm.new(create_params, :factory_class => UserWithAddressesFactory) }
 
         before do
           subject.save
@@ -74,7 +74,7 @@ describe Redtape::Form do
           )
         }
 
-        subject { RegistrationForm.new(update_params) }
+        subject { RegistrationForm.new(update_params, :factory_class => UserWithAddressesFactory) }
 
         specify {
           lambda { subject.save }.should_not change(User, :count)
