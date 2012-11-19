@@ -42,8 +42,8 @@ module Redtape
             model.save!
             @records_to_save.each(&:save!)
           end
-        rescue
-          # TODO: This feels so wrong...
+        rescue ActiveRecord::RecordInvalid
+          # This shouldn't even happen with the #valid? above.
         end
       else
         false
