@@ -3,7 +3,8 @@ require 'spec_helper'
 describe Redtape::Form do
   let(:create_params) {
     HashWithIndifferentAccess.new(
-      :name                   => "Evan Light",
+      :first_name             => "Evan",
+      :last_name              => "Light",
       :social_security_number => "123-456-7890",
       :addresses_attributes => {
         "0" => {
@@ -28,7 +29,8 @@ describe Redtape::Form do
     let(:update_params) {
       HashWithIndifferentAccess.new(
         :id                     => User.last.id,
-        :name                   => "Evan Not-so-bright-light",
+        :first_name             => "Evan",
+        :last_name              => "Not-so-bright-light",
         :social_security_number => "000-000-0000",
         :addresses_attributes => {
           "0" => {
@@ -63,7 +65,7 @@ describe Redtape::Form do
 
       before do
         u = User.create!(
-          :name                   => create_params[:name],
+          :name                   => "#{create_params[:first_name]} #{create_params[:last_name]}",
           :social_security_number => create_params[:social_security_number]
         )
         Address.create!(
@@ -90,7 +92,7 @@ describe Redtape::Form do
         end
 
         specify do
-          User.last.name.should == update_params[:name]
+          User.last.name.should == "#{update_params[:first_name]} #{update_params[:last_name]}"
         end
 
         specify do
