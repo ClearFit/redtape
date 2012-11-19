@@ -82,7 +82,7 @@ In your `#create` or `#update` methods, you'll want somthing like the following:
 
 ```ruby
 def update
-  @form = RegistrationForm.new(params[:registration_form]
+  @form = RegistrationForm.new(params[:registration_form])
   if @form.save
     # happy path
   else
