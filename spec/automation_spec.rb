@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Redtape::Form do
+describe "Using the default ModelFactory" do
   let(:create_params) {
     HashWithIndifferentAccess.new(
       :name                   => "Evan Light",
@@ -24,92 +24,95 @@ describe Redtape::Form do
     )
   }
 
-  context "using the default #populate" do
-    let(:update_params) {
-      HashWithIndifferentAccess.new(
-        :id                     => User.last.id,
-        :name                   => "Evan Not-so-bright-light",
-        :social_security_number => "000-000-0000",
-        :addresses_attributes => {
-          "0" => {
-            :id         => Address.first.id,
-            :address1   => "456 Foobar way",
-            :city       => "Foobar",
-            :state      => "MN",
-            :zipcode    => "12345",
-            :alarm_code => "00000"
-          },
-          "1" => {
-            :id         => Address.last.id,
-            :address1   => "124 Foobar way",
-            :city       => "Foobar",
-            :state      => "MN",
-            :zipcode    => "12345",
-            :alarm_code => "12345"
-          }
+  let(:update_params) {
+    HashWithIndifferentAccess.new(
+      :id                     => User.last.id,
+      :name                   => "Evan Not-so-bright-light",
+      :social_security_number => "000-000-0000",
+      :addresses_attributes => {
+        "0" => {
+          :id         => Address.first.id,
+          :address1   => "456 Foobar way",
+          :city       => "Foobar",
+          :state      => "MN",
+          :zipcode    => "12345",
+          :alarm_code => "00000"
+        },
+        "1" => {
+          :id         => Address.last.id,
+          :address1   => "124 Foobar way",
+          :city       => "Foobar",
+          :state      => "MN",
+          :zipcode    => "12345",
+          :alarm_code => "12345"
         }
+      }
+    )
+  }
+
+  context "when creating records" do
+    before do
+      AutomatedRegistrationForm.new(create_params).save
+    end
+
+    it "saves the root model" do
+      User.count.should == 1
+    end
+
+    it "saves the nested models" do
+      User.first.addresses.count.should == 2
+    end
+  end
+
+  context "when updating records" do
+    subject { AutomatedRegistrationForm.new(update_params) }
+
+    before do
+      u = User.create!(
+        :name                   => create_params[:name],
+        :social_security_number => create_params[:social_security_number]
       )
-    }
-
-    context "when creating records" do
-      subject { AutomatedRegistrationForm.new(create_params) }
-
-      it "uses the value(s) passed to validate_and_save to locate the model params to use for population"
-      it "looks up the classified name for the symbol passes to validate_and_saves"
+      Address.create!(
+        create_params[:addresses_attributes]["0"].merge(:user_id => u.id)
+      )
+      Address.create!(
+        create_params[:addresses_attributes]["1"].merge(:user_id => u.id)
+      )
     end
 
-    context "when updating records" do
-      subject { AutomatedRegistrationForm.new(update_params) }
+    context "record counts" do
+      specify do
+        lambda { subject.save }.should_not change(User, :count)
+      end
 
+      specify do
+        lambda { subject.save }.should_not change(Address, :count)
+      end
+    end
+
+    context "record attributes" do
       before do
-        u = User.create!(
-          :name                   => create_params[:name],
-          :social_security_number => create_params[:social_security_number]
-        )
-        Address.create!(
-          create_params[:addresses_attributes]["0"].merge(:user_id => u.id)
-        )
-        Address.create!(
-          create_params[:addresses_attributes]["1"].merge(:user_id => u.id)
-        )
+        subject.save
       end
 
-      context "record counts" do
-        specify do
-          lambda { subject.save }.should_not change(User, :count)
-        end
-
-        specify do
-          lambda { subject.save }.should_not change(Address, :count)
-        end
+      specify do
+        User.last.name.should == update_params[:name]
       end
 
-      context "record attributes" do
-        before do
-          subject.save
-        end
+      specify do
+        User.last.social_security_number.should_not == update_params[:social_security_number]
+      end
 
-        specify do
-          User.last.name.should == update_params[:name]
-        end
+      specify do
+        User.last.addresses.first.address1.should ==
+          update_params[:addresses_attributes]["0"][:address1]
+      end
 
-        specify do
-          User.last.addresses.first.address1.should ==
-            update_params[:addresses_attributes]["0"][:address1]
-        end
-
-        specify do
-          # NOTE: bogus test due to previous_changes
-          User.last.previous_changes.should_not include(:social_security_number)
-        end
-
-        specify do
-          Address.all.each do |a|
-          # NOTE: bogus test due to previous_changes
-            a.previous_changes.should_not include(:alarm_code)
-          end
-        end
+      specify do
+        User.last.addresses.first.alarm_code.should_not ==
+          update_params[:addresses_attributes]["0"][:alarm_code]
       end
     end
+
   end
 end
