@@ -28,7 +28,7 @@ module Redtape
       when :has_many
         args[:on_association].find(attrs[:id])
       when :has_one
-        args[:for_model].send(args[:for_association_name])
+        args[:on_model].send(args[:for_association_name])
       end
     end
 
@@ -53,72 +53,60 @@ module Redtape
       attributes.each do |key, value|
         next unless refers_to_association?(value)
 
-        association = model.class.reflect_on_association(association_name_in(key).to_sym)
+        association_name = association_name_in(key).to_sym
+        association_reflection = model.class.reflect_on_association(association_name)
+        macro = association_reflection.macro
 
-        case association.macro
-        when :has_many
-          populate_has_many(
-            :in_association   => association_name_in(key),
-            :for_model        => model,
-            :using            => has_many_attrs_array_from(value)
+        associated_models_with_pending_updates =
+          case macro
+          when :has_many
+            value.map do |_, record_attrs|
+              [
+                find_or_initialize_associated_model(
+                  record_attrs,
+                  :for_association_name => association_name_in(key),
+                  :on_model             => model,
+                  :with_macro           => macro
+                ),
+                record_attrs
+              ]
+            end
+          when :has_one
+            [
+              [
+                find_or_initialize_associated_model(
+                  value,
+                  :for_association_name => association_name_in(key),
+                  :on_model             => model,
+                  :with_macro           => macro
+                ),
+                value
+              ]
+            ]
+          when :belongs_to
+            fail "Implement me"
+          else
+            fail "How did you get here anyway?"
+          end
+
+        associated_models_with_pending_updates.each do |associated_model, update_attrs|
+          if associated_model.new_record?
+            case macro
+            when :has_many
+              model.send(association_name).send("<<", associated_model)
+            when :has_one
+              model.send("#{association_name}=", associated_model)
+            end
+          end
+
+          populate_individual_record(
+            associated_model,
+            params_for_current_nesting_level_only(update_attrs)
           )
-        when :has_one
-          populate_has_one(
-            :in_association   => association_name_in(key),
-            :for_model        => model,
-            :using            => value
-          )
-        when :belongs_to
-          fail "Implement me"
-        else
-          fail "How did you get here anyway?"
         end
-
       end
 
       model
-    end
-
-    def populate_has_many(args = {})
-      attrs, association_name, model = args.values_at(:using, :in_association, :for_model)
-
-      attrs.each do |record_attrs|
-        child_model = find_or_initialize_associated_model(
-          record_attrs,
-          :for_association_name => association_name,
-          :with_macro           => :has_many,
-          :on_model             => model
-        )
-
-        if child_model.new_record?
-          model.send(association_name).send("<<", child_model)
-        end
-
-        populate_individual_record(
-          child_model,
-          params_for_current_nesting_level_only(record_attrs)
-        )
-      end
-    end
-
-    def populate_has_one(args = {})
-      attrs, association_name, model = args.values_at(:using, :in_association, :for_model)
-
-      child_model = find_or_initialize_associated_model(
-        attrs,
-        :for_association_name => association_name,
-        :with_macro           => :has_one,
-        :on_model             => model
-      )
-
-      if child_model.new_record?
-        model.send("#{association_name}=", child_model)
-      end
-
-      populate_individual_record(
-        child_model,
-        params_for_current_nesting_level_only(attrs)
-      )
     end
 
     def find_or_initialize_associated_model(attrs, args = {})
@@ -128,7 +116,7 @@ module Redtape
       if attrs[:id]
         find_associated_model(
           attrs,
-          :for_model => model,
+          :on_model => model,
           :with_macro => macro,
           :on_association => association,
         ).tap do |record|
