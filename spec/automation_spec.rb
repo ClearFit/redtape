@@ -115,4 +115,32 @@ describe "Using the default ModelFactory" do
     end
 
   end
+
+  context "User has_one PhoneNumber" do
+    let(:create_params) {
+      HashWithIndifferentAccess.new(
+        :name => "Evan Light",
+        :phone_number_attributes => {
+          :country_code => "1",
+          :area_code    => "123",
+          :number       => "456-7890"
+        }
+      )
+    }
+
+    subject { AutomatedRegistrationForm.new(create_params) }
+
+    specify do
+      count = User.count
+      subject.save
+      User.count.should == count + 1
+    end
+
+    specify do
+      count = PhoneNumber.count
+      subject.save
+      PhoneNumber.count.should == count + 1
+    end
+
+  end
 end

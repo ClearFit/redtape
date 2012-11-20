@@ -1,5 +1,6 @@
 class User < ActiveRecord::Base
   has_many :addresses
+  has_one  :phone_number
 
   attr_accessible :name, :social_security_number
 
