@@ -24,7 +24,12 @@ module Redtape
     # API hook used to look up an existing record given its AssociationProxy
     # and all of the form parameters relevant to this record.
     def find_associated_model(attrs, args = {})
-      args[:on_association].find(attrs[:id])
+      case args[:with_macro]
+      when :has_many
+        args[:on_association].find(attrs[:id])
+      when :has_one
+        args[:for_model].send(args[:for_association_name])
+      end
     end
 
     private
@@ -58,7 +63,11 @@ module Redtape
             :using            => has_many_attrs_array_from(value)
           )
         when :has_one
-          fail "Implement me"
+          populate_has_one(
+            :in_association   => association_name_in(key),
+            :for_model        => model,
+            :using            => value
+          )
         when :belongs_to
           fail "Implement me"
         else
@@ -92,24 +101,48 @@ module Redtape
       end
     end
 
+    def populate_has_one(args = {})
+      attrs, association_name, model = args.values_at(:using, :in_association, :for_model)
+
+      child_model = find_or_initialize_associated_model(
+        attrs,
+        :for_association_name => association_name,
+        :with_macro           => :has_one,
+        :on_model             => model
+      )
+
+      if child_model.new_record?
+        model.send("#{association_name}=", child_model)
+      end
+
+      populate_individual_record(
+        child_model,
+        params_for_current_nesting_level_only(attrs)
+      )
+    end
+
     def find_or_initialize_associated_model(attrs, args = {})
       association_name, macro, model = args.values_at(:for_association_name, :with_macro, :on_model)
 
       association = model.send(association_name)
       if attrs[:id]
-        find_associated_model(attrs, :on_association => association).tap do |record|
+        find_associated_model(
+          attrs,
+          :for_model => model,
+          :with_macro => macro,
+          :on_association => association,
+        ).tap do |record|
           records_to_save << record
         end
       else
-        build_associated_model(association)
+        case macro
+        when :has_many
+          model.send(association_name).build
+        when :has_one
+          model.send("build_#{association_name}")
+        end
       end
     end
-
-    def build_associated_model(association)
-      association.build
-    end
-
-
 
     def refers_to_association?(value)
       value.is_a?(Hash)
