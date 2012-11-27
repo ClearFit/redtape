@@ -1,15 +1,17 @@
 module Redtape
   class ModelFactory
-    attr_reader :model_accessor, :records_to_save
+    attr_reader :model_accessor, :records_to_save, :model
 
-    def initialize(model_accessor)
-      @model_accessor = model_accessor
+    def initialize(finder_and_populator)
+      @finder_and_populator = finder_and_populator
+      @model_accessor = finder_and_populator.model_accessor
       @records_to_save = []
     end
 
-    def populate_model_using(params)
-      model = find_or_create_root_model_from(params)
-      populate(model, params)
+    def populate_model
+      params = @finder_and_populator.params[@model_accessor]
+      @model = find_or_create_root_model_from(params)
+      populate(@model, params)
     end
 
     protected

@@ -12,20 +12,11 @@ module Redtape
     include ActiveModel::Conversion
     include ActiveModel::Validations
 
-    class_attribute   :model_accessor
-    attr_reader       :params
-
     validate          :models_correct
 
-
-    def self.validates_and_saves(accessor)
-      attr_reader accessor
-      self.model_accessor = accessor
-    end
-
-    def initialize(attrs = {}, args = { :factory_class => ModelFactory })
-      @params = attrs
-      @factory = args[:factory_class].new(self.class.model_accessor)
+    def initialize(finder_and_populator)
+      @finder_and_populator = finder_and_populator
+      @factory              = ModelFactory.new(finder_and_populator)
     end
 
     # Forms are never themselves persisted
@@ -37,8 +28,7 @@ module Redtape
       if valid?
         begin
           ActiveRecord::Base.transaction do
-            model = send(self.class.model_accessor)
-            model.save!
+            @factory.model.save!
             @factory.records_to_save.each(&:save!)
           end
         rescue ActiveRecord::RecordInvalid
@@ -52,20 +42,20 @@ module Redtape
     private
 
     def before_validation
-      model = @factory.populate_model_using(params)
-      instance_variable_set("@#{self.class.model_accessor}", model)
+      model = @factory.populate_model
+      instance_variable_set("@#{@finder_and_populator.model_accessor}", model)
     end
 
     def models_correct
       before_validation
 
-      model = instance_variable_get("@#{self.class.model_accessor}")
+      model = instance_variable_get("@#{@finder_and_populator.model_accessor}")
       begin
         if model.invalid?
           own_your_errors_in(model)
         end
       rescue NoMethodError => e
-        fail NoMethodError, "#{self.class} is missing 'validates_and_saves :#{model_accessor}': #{e}"
+        fail NoMethodError, "#{self.class} is missing 'validates_and_saves :#{@finder_and_populator.model_accessor}': #{e}"
       end
     end
 

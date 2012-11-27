@@ -3,22 +3,24 @@ require 'spec_helper'
 describe "Using the default ModelFactory" do
   let(:create_params) {
     HashWithIndifferentAccess.new(
-      :name                   => "Evan Light",
-      :social_security_number => "123-456-7890",
-      :addresses_attributes => {
-        "0" => {
-          :address1   => "123 Foobar way",
-          :city       => "Foobar",
-          :state      => "MN",
-          :zipcode    => "12345",
-          :alarm_code => "12345"
-        },
-        "1" => {
-          :address1   => "124 Foobar way",
-          :city       => "Foobar",
-          :state      => "MN",
-          :zipcode    => "12345",
-          :alarm_code => "12345"
+      :user => {
+        :name                   => "Evan Light",
+        :social_security_number => "123-456-7890",
+        :addresses_attributes => {
+          "0" => {
+            :address1   => "123 Foobar way",
+            :city       => "Foobar",
+            :state      => "MN",
+            :zipcode    => "12345",
+            :alarm_code => "12345"
+          },
+          "1" => {
+            :address1   => "124 Foobar way",
+            :city       => "Foobar",
+            :state      => "MN",
+            :zipcode    => "12345",
+            :alarm_code => "12345"
+          }
         }
       }
     )
@@ -26,33 +28,37 @@ describe "Using the default ModelFactory" do
 
   let(:update_params) {
     HashWithIndifferentAccess.new(
-      :id                     => User.last.id,
-      :name                   => "Evan Not-so-bright-light",
-      :social_security_number => "000-000-0000",
-      :addresses_attributes => {
-        "0" => {
-          :id         => Address.first.id,
-          :address1   => "456 Foobar way",
-          :city       => "Foobar",
-          :state      => "MN",
-          :zipcode    => "12345",
-          :alarm_code => "00000"
-        },
-        "1" => {
-          :id         => Address.last.id,
-          :address1   => "124 Foobar way",
-          :city       => "Foobar",
-          :state      => "MN",
-          :zipcode    => "12345",
-          :alarm_code => "12345"
+      :user => {
+        :id                     => User.last.id,
+        :name                   => "Evan Not-so-bright-light",
+        :social_security_number => "000-000-0000",
+        :addresses_attributes => {
+          "0" => {
+            :id         => Address.first.id,
+            :address1   => "456 Foobar way",
+            :city       => "Foobar",
+            :state      => "MN",
+            :zipcode    => "12345",
+            :alarm_code => "00000"
+          },
+          "1" => {
+            :id         => Address.last.id,
+            :address1   => "124 Foobar way",
+            :city       => "Foobar",
+            :state      => "MN",
+            :zipcode    => "12345",
+            :alarm_code => "12345"
+          }
         }
       }
     )
   }
 
   context "when creating records" do
+    let(:controller_stub) { stub(:params => create_params, :model_accessor => :user) }
+
     before do
-      AutomatedRegistrationForm.new(create_params).save
+      Redtape::Form.new(controller_stub).save
     end
 
     it "saves the root model" do
@@ -65,18 +71,21 @@ describe "Using the default ModelFactory" do
   end
 
   context "when updating records" do
-    subject { AutomatedRegistrationForm.new(update_params) }
+    let(:controller_stub) { stub(:params => update_params, :model_accessor => :user) }
+
+    subject { Redtape::Form.new(controller_stub) }
 
     before do
+      params = create_params[:user]
       u = User.create!(
-        :name                   => create_params[:name],
-        :social_security_number => create_params[:social_security_number]
+        :name                   => params[:name],
+        :social_security_number => params[:social_security_number]
       )
       Address.create!(
-        create_params[:addresses_attributes]["0"].merge(:user_id => u.id)
+        params[:addresses_attributes]["0"].merge(:user_id => u.id)
       )
       Address.create!(
-        create_params[:addresses_attributes]["1"].merge(:user_id => u.id)
+        params[:addresses_attributes]["1"].merge(:user_id => u.id)
       )
     end
 
@@ -96,21 +105,21 @@ describe "Using the default ModelFactory" do
       end
 
       specify do
-        User.last.name.should == update_params[:name]
+        User.last.name.should == update_params[:user][:name]
       end
 
       specify do
-        User.last.social_security_number.should_not == update_params[:social_security_number]
+        User.last.social_security_number.should_not == update_params[:user][:social_security_number]
       end
 
       specify do
         User.last.addresses.first.address1.should ==
-          update_params[:addresses_attributes]["0"][:address1]
+          update_params[:user][:addresses_attributes]["0"][:address1]
       end
 
       specify do
         User.last.addresses.first.alarm_code.should_not ==
-          update_params[:addresses_attributes]["0"][:alarm_code]
+          update_params[:user][:addresses_attributes]["0"][:alarm_code]
       end
     end
 
@@ -119,16 +128,20 @@ describe "Using the default ModelFactory" do
   context "User has_one PhoneNumber" do
     let(:create_params) {
       HashWithIndifferentAccess.new(
-        :name => "Evan Light",
-        :phone_number_attributes => {
-          :country_code => "1",
-          :area_code    => "123",
-          :number       => "456-7890"
+        :user => {
+          :name => "Evan Light",
+          :phone_number_attributes => {
+            :country_code => "1",
+            :area_code    => "123",
+            :number       => "456-7890"
+          }
         }
       )
     }
 
-    subject { AutomatedRegistrationForm.new(create_params) }
+    let(:controller_stub) { stub(:params => create_params, :model_accessor => :user) }
+
+    subject { Redtape::Form.new(controller_stub) }
 
     specify do
       count = User.count
