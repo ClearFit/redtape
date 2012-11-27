@@ -47,7 +47,14 @@ module Redtape
     end
 
     def populate(model, attributes)
-      populate_individual_record(
+      msg_target =
+        if @finder_and_populator.respond_to?(:populate_individual_record)
+          @finder_and_populator
+        else
+          self
+        end
+      msg_target.send(
+        :populate_individual_record,
         model,
         params_for_current_nesting_level_only(attributes)
       )
@@ -116,7 +123,14 @@ module Redtape
 
       association = model.send(association_name)
       if attrs[:id]
-        find_associated_model(
+        msg_target =
+          if @finder_and_populator.respond_to?(:find_associated_model)
+            @finder_and_populator
+          else
+            self
+          end
+        msg_target.send(
+          :find_associated_model,
           attrs,
           :on_model => model,
           :with_macro => macro,
