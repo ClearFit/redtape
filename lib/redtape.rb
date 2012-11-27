@@ -40,14 +40,26 @@ module Redtape
     end
 
     def method_missing(*args)
-      if args[0] == @finder_and_populator.model_accessor
+      if model_accessor?(args[0])
         @factory.model
       else
         super
       end
     end
 
+    def respond_to?(method, instance_method)
+      if model_accessor?(method)
+        true
+      else
+        super
+      end
+    end
+
     private
+
+    def model_accessor?(method)
+      method == @finder_and_populator.model_accessor
+    end
 
     def before_validation
       model = @factory.populate_model
