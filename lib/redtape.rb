@@ -61,7 +61,9 @@ module Redtape
     private
 
     def default_model_accessor_from(finder_and_populator)
-      /(\w+)Controller/.match(finder_and_populator.class.to_s)[1].singularize.downcase.to_sym
+      if finder_and_populator.class.to_s =~ /(\w+)Controller/
+        $1.singularize.downcase.to_sym
+      end
     end
 
     def before_validation
