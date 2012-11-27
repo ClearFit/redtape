@@ -2,14 +2,14 @@ module Redtape
   class ModelFactory
     attr_reader :model_accessor, :records_to_save, :model
 
-    def initialize(finder_and_populator, model_accessor = nil)
-      @finder_and_populator = finder_and_populator
+    def initialize(populator, model_accessor = nil)
+      @populator = populator
       @model_accessor = model_accessor
       @records_to_save = []
     end
 
     def populate_model
-      params = @finder_and_populator.params[model_accessor]
+      params = @populator.params[model_accessor]
       @model = find_or_create_root_model_from(params)
       populate(@model, params)
     end
@@ -23,8 +23,8 @@ module Redtape
       record.attributes = record.attributes.merge(attrs)
     end
 
-    # API hook used to look up an existing record given its AssociationProxy
-    # and all of the form parameters relevant to this record.
+    private
+
     def find_associated_model(attrs, args = {})
       case args[:with_macro]
       when :has_many
@@ -33,8 +33,6 @@ module Redtape
         args[:on_model].send(args[:for_association_name])
       end
     end
-
-    private
 
     # Factory method for root object
     def find_or_create_root_model_from(params)
@@ -48,8 +46,8 @@ module Redtape
 
     def populate(model, attributes)
       msg_target =
-        if @finder_and_populator.respond_to?(:populate_individual_record)
-          @finder_and_populator
+        if @populator.respond_to?(:populate_individual_record)
+          @populator
         else
           self
         end
@@ -124,8 +122,8 @@ module Redtape
       association = model.send(association_name)
       if attrs[:id]
         msg_target =
-          if @finder_and_populator.respond_to?(:find_associated_model)
-            @finder_and_populator
+          if @populator.respond_to?(:find_associated_model)
+            @populator
           else
             self
           end

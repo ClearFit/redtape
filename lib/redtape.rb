@@ -16,9 +16,9 @@ module Redtape
 
     attr_reader :model_accessor
 
-    def initialize(finder_and_populator, args = {})
-      @model_accessor       = args[:model_accessor] || default_model_accessor_from(finder_and_populator)
-      @factory              = ModelFactory.new(finder_and_populator, model_accessor)
+    def initialize(populator, args = {})
+      @model_accessor       = args[:model_accessor] || default_model_accessor_from(populator)
+      @factory              = ModelFactory.new(populator, model_accessor)
     end
 
     # Forms are never themselves persisted
@@ -60,8 +60,8 @@ module Redtape
 
     private
 
-    def default_model_accessor_from(finder_and_populator)
-      if finder_and_populator.class.to_s =~ /(\w+)Controller/
+    def default_model_accessor_from(populator)
+      if populator.class.to_s =~ /(\w+)Controller/
         $1.singularize.downcase.to_sym
       end
     end
