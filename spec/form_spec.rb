@@ -1,26 +1,23 @@
 require 'spec_helper'
 
-class FakeController
+class RegistrationController
   include RegistrationRedtape
 end
 
 describe Redtape::Form do
-  subject { Redtape::Form.new(controller_stub) }
+  subject { Redtape::Form.new(controller_stub, :model_accessor => :user) }
 
   context "given a Form accepting a first and last name that creates a User" do
     context "with valid data" do
       let (:controller_stub) {
-        class FakeController
-          def params
-            {
-              :user => {
-                :first_name => "Evan",
-                :last_name => "Light"
-              }
+        RegistrationController.new.tap do |c|
+          c.stub(:params).and_return({
+            :user => {
+              :first_name => "Evan",
+              :last_name => "Light"
             }
-          end
+          })
         end
-        FakeController.new
       }
 
       context "after saving the form" do
@@ -44,16 +41,13 @@ describe Redtape::Form do
 
     context "with invalid data" do
       let (:controller_stub) {
-        class FakeController
-          def params
-            {
-              :user => {
-                :first_name => "Evan"
-              }
+        RegistrationController.new.tap do |c|
+          c.stub(:params).and_return({
+            :user => {
+              :first_name => "Evan"
             }
-          end
+          })
         end
-        FakeController.new
       }
 
       context "after saving the form" do

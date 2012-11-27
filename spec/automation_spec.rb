@@ -1,5 +1,7 @@
 require 'spec_helper'
 
+class UsersController; end
+
 describe "Using the default ModelFactory" do
   let(:create_params) {
     HashWithIndifferentAccess.new(
@@ -55,7 +57,9 @@ describe "Using the default ModelFactory" do
   }
 
   context "when creating records" do
-    let(:controller_stub) { stub(:params => create_params, :model_accessor => :user) }
+    let(:controller_stub) {
+      UsersController.new.tap { |c| c.stub(:params => create_params) }
+    }
 
     before do
       Redtape::Form.new(controller_stub).save
@@ -71,7 +75,9 @@ describe "Using the default ModelFactory" do
   end
 
   context "when updating records" do
-    let(:controller_stub) { stub(:params => update_params, :model_accessor => :user) }
+    let(:controller_stub) {
+      UsersController.new.tap { |c| c.stub(:params => update_params) }
+    }
 
     subject { Redtape::Form.new(controller_stub) }
 
@@ -139,7 +145,9 @@ describe "Using the default ModelFactory" do
       )
     }
 
-    let(:controller_stub) { stub(:params => create_params, :model_accessor => :user) }
+    let(:controller_stub) {
+      UsersController.new.tap { |c| c.stub(:params => create_params) }
+    }
 
     subject { Redtape::Form.new(controller_stub) }
 
