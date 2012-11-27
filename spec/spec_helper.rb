@@ -6,9 +6,10 @@ require 'pry'
 
 ActiveRecord::Base.establish_connection(:adapter => 'sqlite3', :database => 'development.db')
 
-
-Dir.glob("./spec/fixtures/models/*").each do |r|
-  require r[0...-3]
+%w[models redtape].each do |path|
+  Dir.glob("./spec/fixtures/#{path}/*").each do |r|
+    require r[0...-3]
+  end
 end
 
 RSpec.configure do |config|

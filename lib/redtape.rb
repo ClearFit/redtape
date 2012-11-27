@@ -39,6 +39,14 @@ module Redtape
       end
     end
 
+    def method_missing(*args)
+      if args[0] == @finder_and_populator.model_accessor
+        @factory.model
+      else
+        super
+      end
+    end
+
     private
 
     def before_validation

@@ -1,15 +1,26 @@
 require 'spec_helper'
 
+class FakeController
+  include RegistrationRedtape
+end
+
 describe Redtape::Form do
+  subject { Redtape::Form.new(controller_stub) }
+
   context "given a Form accepting a first and last name that creates a User" do
     context "with valid data" do
-      subject {
-        RegistrationForm.new({
-          :first_name => "Evan",
-          :last_name => "Light"
-        }, {
-          :factory_class => UserFactory
-        })
+      let (:controller_stub) {
+        class FakeController
+          def params
+            {
+              :user => {
+                :first_name => "Evan",
+                :last_name => "Light"
+              }
+            }
+          end
+        end
+        FakeController.new
       }
 
       context "after saving the form" do
@@ -32,7 +43,18 @@ describe Redtape::Form do
     end
 
     context "with invalid data" do
-      subject { RegistrationForm.new({:first_name => "Evan"}, :factory_class => UserFactory) }
+      let (:controller_stub) {
+        class FakeController
+          def params
+            {
+              :user => {
+                :first_name => "Evan"
+              }
+            }
+          end
+        end
+        FakeController.new
+      }
 
       context "after saving the form" do
         before do
@@ -44,24 +66,6 @@ describe Redtape::Form do
         specify { subject.errors.should have_key(:name) }
         specify { subject.user.should_not be_valid }
       end
-    end
-  end
-
-  context "given another Form subclass" do
-    before do
-      Class.new(Redtape::Form) do
-        validates_and_saves :test_object
-      end.new(:test_object => :foo)
-    end
-
-    subject { RegistrationForm.new({}, :factory_class => UserFactory) }
-
-    context "RegistrationForm still saves User" do
-      before do
-        subject.save
-      end
-
-      specify { subject.should_not be_valid }
     end
   end
 end
