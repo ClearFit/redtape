@@ -62,57 +62,37 @@ module Redtape
         next unless refers_to_association?(value)
 
         macro = macro_for_attribute_key(key)
-        association_populators.concat(
+        associated_attrs =
           case macro
           when :has_many
-            value.inject([]) do |has_many_populators, kv|
-              record_attrs = kv[1]
-              assoc_name = find_association_name_in(key)
-              current_scope_attrs = params_for_current_scope_only(record_attrs)
-              associated_model = find_or_initialize_associated_model(
-                record_attrs,
-                :for_association_name => assoc_name,
-                :on_model             => model,
-                :with_macro           => macro
-              )
-              has_many_populators << Populator::HasMany.new(
-                associated_model,
-                assoc_name,
-                current_scope_attrs,
-                model,
-                @populator
-              )
-              has_many_populators.concat(
-               create_populators_for(associated_model, record_attrs)
-              )
-              has_many_populators
-            end
+            value.values
           when :has_one
-            assoc_name = find_association_name_in(key)
-            record_attrs = params_for_current_scope_only(value)
-            associated_model = find_or_initialize_associated_model(
-              record_attrs,
-              :for_association_name => assoc_name,
-              :on_model             => model,
-              :with_macro           => macro
-            )
-            Array(
-              Populator::HasOne.new(
-                associated_model,
-                assoc_name,
-                record_attrs,
-                model,
-                @populator
-              )
-            ).concat(
-              create_populators_for(associated_model, record_attrs)
-            )
-          when :belongs_to
-            fail "Implement me"
-          else
-            fail "How did you get here anyway?"
+            [value]
           end
-        )
+
+        associated_attrs.inject(association_populators) do |populators, record_attrs|
+          assoc_name = find_association_name_in(key)
+          current_scope_attrs = params_for_current_scope_only(record_attrs)
+          associated_model = find_or_initialize_associated_model(
+            current_scope_attrs,
+            :for_association_name => assoc_name,
+            :on_model             => model,
+            :with_macro           => macro
+          )
+
+          populator_class = "Redtape::Populator::#{macro.to_s.camelize}".constantize
+          populators << populator_class.new(
+            associated_model,
+            assoc_name,
+            current_scope_attrs,
+            model,
+            @populator
+          )
+
+          populators.concat(
+            create_populators_for(associated_model, record_attrs)
+          )
+        end
       end
     end
 
@@ -137,6 +117,8 @@ module Redtape
           model.send("build_#{association_name}")
         end
       end
+    rescue TypeError
+      binding.pry
     end
 
     def macro_for_attribute_key(key)
