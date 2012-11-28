@@ -46,10 +46,7 @@ module Redtape
       attributes.each do |key, value|
         next unless refers_to_association?(value)
 
-        association_name = association_name_in(key).to_sym
-        association_reflection = model.class.reflect_on_association(association_name)
-        macro = association_reflection.macro
-
+        macro = macro_for_attribute_key(key)
         associated_models_with_pending_updates =
           case macro
           when :has_many
@@ -57,7 +54,7 @@ module Redtape
               [
                 find_or_initialize_associated_model(
                   record_attrs,
-                  :for_association_name => association_name_in(key),
+                  :for_association_name => find_association_name_in(key),
                   :on_model             => model,
                   :with_macro           => macro
                 ),
@@ -69,7 +66,7 @@ module Redtape
               [
                 find_or_initialize_associated_model(
                   value,
-                  :for_association_name => association_name_in(key),
+                  :for_association_name => find_association_name_in(key),
                   :on_model             => model,
                   :with_macro           => macro
                 ),
@@ -82,6 +79,7 @@ module Redtape
             fail "How did you get here anyway?"
           end
 
+        association_name = find_association_name_in(key).to_sym
         associated_models_with_pending_updates.each do |associated_model, update_attrs|
           if associated_model.new_record?
             case macro
@@ -92,7 +90,7 @@ module Redtape
             end
           end
 
-          populate_individual_record(
+          populate_model_attributes(
             associated_model,
             params_for_current_nesting_level_only(update_attrs)
           )
@@ -139,6 +137,12 @@ module Redtape
       )
     end
 
+    def macro_for_attribute_key(key)
+      association_name = find_association_name_in(key).to_sym
+      association_reflection = model.class.reflect_on_association(association_name)
+      macro = association_reflection.macro
+    end
+
     def refers_to_association?(value)
       value.is_a?(Hash)
     end
@@ -153,7 +157,7 @@ module Redtape
       key =~ ATTRIBUTES_KEY_REGEXP
     end
 
-    def association_name_in(key)
+    def find_association_name_in(key)
       ATTRIBUTES_KEY_REGEXP.match(key)[1]
     end
 
