@@ -10,16 +10,31 @@ module Redtape
 
     def populate_model
       params = @populator.params[model_accessor]
+
+      # Find or create the root model then populate it
       @model = find_or_create_root_model_from(params)
-      populate(@model, params)
+
+      populators = [
+        Populator::Root.new(
+          @model,
+          nil,
+          params_for_current_scope_only(params),
+          nil,
+          @populator
+        )
+      ]
+      populators.concat(
+        create_populators_for(model, params).flatten
+      )
+
+      populators.each do |p|
+        p.call
+      end
+
+      @model
     end
 
     private
-
-    def populate_individual_record(record, attrs)
-      # #merge! didn't work here....
-      record.attributes = record.attributes.merge(attrs)
-    end
 
     def find_associated_model(attrs, args = {})
       case args[:with_macro]
@@ -40,64 +55,65 @@ module Redtape
       end
     end
 
-    def populate(model, attributes)
-      populate_model_attributes(model, attributes)
+    def create_populators_for(model, attributes)
+      attributes.each_with_object([]) do |kv, association_populators|
+        key, value = kv[0], kv[1]
 
-      attributes.each do |key, value|
         next unless refers_to_association?(value)
 
         macro = macro_for_attribute_key(key)
-        associated_models_with_pending_updates =
+        association_populators.concat(
           case macro
           when :has_many
-            value.map do |_, record_attrs|
-              [
-                find_or_initialize_associated_model(
-                  record_attrs,
-                  :for_association_name => find_association_name_in(key),
-                  :on_model             => model,
-                  :with_macro           => macro
-                ),
-                record_attrs
-              ]
+            value.inject([]) do |has_many_populators, kv|
+              record_attrs = kv[1]
+              assoc_name = find_association_name_in(key)
+              current_scope_attrs = params_for_current_scope_only(record_attrs)
+              associated_model = find_or_initialize_associated_model(
+                record_attrs,
+                :for_association_name => assoc_name,
+                :on_model             => model,
+                :with_macro           => macro
+              )
+              has_many_populators << Populator::HasMany.new(
+                associated_model,
+                assoc_name,
+                current_scope_attrs,
+                model,
+                @populator
+              )
+              has_many_populators.concat(
+               create_populators_for(associated_model, record_attrs)
+              )
+              has_many_populators
             end
           when :has_one
-            [
-              [
-                find_or_initialize_associated_model(
-                  value,
-                  :for_association_name => find_association_name_in(key),
-                  :on_model             => model,
-                  :with_macro           => macro
-                ),
-                value
-              ]
-            ]
+            assoc_name = find_association_name_in(key)
+            record_attrs = params_for_current_scope_only(value)
+            associated_model = find_or_initialize_associated_model(
+              record_attrs,
+              :for_association_name => assoc_name,
+              :on_model             => model,
+              :with_macro           => macro
+            )
+            Array(
+              Populator::HasOne.new(
+                associated_model,
+                assoc_name,
+                record_attrs,
+                model,
+                @populator
+              )
+            ).concat(
+              create_populators_for(associated_model, record_attrs)
+            )
           when :belongs_to
             fail "Implement me"
           else
             fail "How did you get here anyway?"
           end
-
-        association_name = find_association_name_in(key).to_sym
-        associated_models_with_pending_updates.each do |associated_model, update_attrs|
-          if associated_model.new_record?
-            case macro
-            when :has_many
-              model.send(association_name).send("<<", associated_model)
-            when :has_one
-              model.send("#{association_name}=", associated_model)
-            end
-          end
-
-          populate_model_attributes(
-            associated_model,
-            params_for_current_nesting_level_only(update_attrs)
-          )
-        end
+        )
       end
-
-      model
     end
 
     def find_or_initialize_associated_model(attrs, args = {})
@@ -123,20 +139,6 @@ module Redtape
       end
     end
 
-    def populate_model_attributes(model, attributes)
-      msg_target =
-        if @populator.respond_to?(:populate_individual_record)
-          @populator
-        else
-          self
-        end
-      msg_target.send(
-        :populate_individual_record,
-        model,
-        params_for_current_nesting_level_only(attributes)
-      )
-    end
-
     def macro_for_attribute_key(key)
       association_name = find_association_name_in(key).to_sym
       association_reflection = model.class.reflect_on_association(association_name)
@@ -147,7 +149,7 @@ module Redtape
       value.is_a?(Hash)
     end
 
-    def params_for_current_nesting_level_only(attrs)
+    def params_for_current_scope_only(attrs)
       attrs.dup.reject { |_, v| v.is_a? Hash }
     end
 
