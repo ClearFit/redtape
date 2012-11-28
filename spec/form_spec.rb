@@ -57,7 +57,7 @@ describe Redtape::Form do
 
         specify { subject.should_not be_valid }
         specify { subject.should_not be_persisted }
-        specify { binding.pry; subject.errors.should have_key(:name) }
+        specify { subject.errors.should have_key(:name) }
         specify { subject.user.should_not be_valid }
       end
     end
