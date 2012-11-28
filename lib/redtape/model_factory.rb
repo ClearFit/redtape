@@ -41,17 +41,7 @@ module Redtape
     end
 
     def populate(model, attributes)
-      msg_target =
-        if @populator.respond_to?(:populate_individual_record)
-          @populator
-        else
-          self
-        end
-      msg_target.send(
-        :populate_individual_record,
-        model,
-        params_for_current_nesting_level_only(attributes)
-      )
+      populate_model_attributes(model, attributes)
 
       attributes.each do |key, value|
         next unless refers_to_association?(value)
@@ -133,6 +123,20 @@ module Redtape
           model.send("build_#{association_name}")
         end
       end
+    end
+
+    def populate_model_attributes(model, attributes)
+      msg_target =
+        if @populator.respond_to?(:populate_individual_record)
+          @populator
+        else
+          self
+        end
+      msg_target.send(
+        :populate_individual_record,
+        model,
+        params_for_current_nesting_level_only(attributes)
+      )
     end
 
     def refers_to_association?(value)
