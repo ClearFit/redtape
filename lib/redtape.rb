@@ -9,10 +9,9 @@ require 'active_record'
 module Redtape
   class Form
     extend ActiveModel::Naming
+    include ActiveModel::Callbacks
     include ActiveModel::Conversion
     include ActiveModel::Validations
-
-    validate          :models_correct
 
     attr_reader :model_accessor
 
@@ -24,6 +23,18 @@ module Redtape
     # Forms are never themselves persisted
     def persisted?
       false
+    end
+
+    def valid?
+      model = @factory.populate_model
+      instance_variable_set("@#{@model_accessor}", model)
+      valid = model.valid?
+
+      # @errors comes from ActiveModel::Validations. This may not
+      # be a legit hook.
+      @errors = model.errors
+
+      valid
     end
 
     def save
@@ -50,7 +61,7 @@ module Redtape
       end
     end
 
-    def respond_to?(method, instance_method)
+    def respond_to?(method, instance_method = false)
       if method == send(:model_accessor)
         true
       else
@@ -63,31 +74,6 @@ module Redtape
     def default_model_accessor_from(populator)
       if populator.class.to_s =~ /(\w+)Controller/
         $1.singularize.downcase.to_sym
-      end
-    end
-
-    def before_validation
-      model = @factory.populate_model
-      instance_variable_set("@#{model_accessor}", model)
-    end
-
-    def models_correct
-      before_validation
-
-      model = instance_variable_get("@#{model_accessor}")
-      begin
-        if model.invalid?
-          own_your_errors_in(model)
-        end
-      rescue NoMethodError => e
-        fail NoMethodError, "#{self.class} is missing 'validates_and_saves :#{model_accessor}': #{e}"
-      end
-    end
-
-    # TODO: Do we even needs this if each model has its own errors and the caller is using forms_for and fields_for?
-    def own_your_errors_in(model)
-      model.errors.each do |k, v|
-        errors.add(k, v)
       end
     end
   end
