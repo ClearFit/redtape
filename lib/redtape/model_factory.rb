@@ -14,16 +14,12 @@ module Redtape
       populate(@model, params)
     end
 
-    protected
+    private
 
-    # API hook to map request parameters (truncated from the attributes for this
-    # record on down) onto the provided record instance.
     def populate_individual_record(record, attrs)
       # #merge! didn't work here....
       record.attributes = record.attributes.merge(attrs)
     end
-
-    private
 
     def find_associated_model(attrs, args = {})
       case args[:with_macro]
@@ -121,14 +117,7 @@ module Redtape
 
       association = model.send(association_name)
       if attrs[:id]
-        msg_target =
-          if @populator.respond_to?(:find_associated_model)
-            @populator
-          else
-            self
-          end
-        msg_target.send(
-          :find_associated_model,
+        find_associated_model(
           attrs,
           :on_model => model,
           :with_macro => macro,
