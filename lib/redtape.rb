@@ -13,6 +13,7 @@ require 'active_record'
 module Redtape
 
   class DuelingBanjosError < StandardError; end
+  class WhitelistViolationError < StandardError; end
 
   class Form
     extend ActiveModel::Naming
@@ -32,7 +33,7 @@ module Redtape
         args[:model_accessor] ||
         default_model_accessor_from(populator)
 
-      @factory              = ModelFactory.new(populator, model_accessor)
+      @factory = ModelFactory.new(factory_args_for(populator, args))
     end
 
     # Forms are never themselves persisted
@@ -90,6 +91,26 @@ module Redtape
       if populator.class.to_s =~ /(\w+)Controller/
         $1.singularize.downcase.to_sym
       end
+    end
+
+    def factory_args_for(populator, args)
+      factory_args = {
+        :model_accessor => model_accessor,
+        :attrs          => populator.params
+      }
+      addl_args =
+        if args[:whitelisted_attrs] && populator.respond_to?(:populate_individual_record)
+          fail ArgumentError, "Expected either :data_mapper to respond_to #populate_individual_record or :whitelisted_attrs"
+        elsif populator.respond_to?(:populate_individual_record)
+          { :data_mapper => populator }
+        elsif args[:whitelisted_attrs]
+          { :whitelisted_attrs => args[:whitelisted_attrs] }
+        else
+          {}
+        end
+      factory_args.merge(addl_args)
+    rescue
+      binding.pry
     end
   end
 end

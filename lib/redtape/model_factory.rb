@@ -1,27 +1,21 @@
 module Redtape
   class ModelFactory
-    attr_reader :model_accessor, :records_to_save, :model
+    attr_reader :model_accessor, :records_to_save, :model, :data_mapper, :whitelisted_attrs, :attrs
 
-    def initialize(data_mapper, model_accessor = nil)
-      @data_mapper = data_mapper
-      @model_accessor = model_accessor
-      @records_to_save = []
+    def initialize(args = {})
+      @attrs             = args[:attrs]
+      @whitelisted_attrs = args[:whitelisted_attrs]
+      @data_mapper       = args[:data_mapper]
+      @model_accessor    = args[:model_accessor]
+      @records_to_save   = []
     end
 
     def populate_model
-      params = @data_mapper.params[model_accessor]
+      @model = find_or_create_root_model_from(attrs)
 
-      @model = find_or_create_root_model_from(params)
-
-      populators = [
-        Populator::Root.new(
-          :model       => @model,
-          :attrs       => params_for_current_scope_only(params),
-          :data_mapper => @data_mapper
-        )
-      ]
+      populators = [ Populator::Root.new(root_populator_args) ]
       populators.concat(
-        create_populators_for(model, params).flatten
+        create_populators_for(model, attrs.first.last).flatten
       )
 
       populators.each do |p|
@@ -32,6 +26,19 @@ module Redtape
     end
 
     private
+
+    def root_populator_args
+      root_populator_args = {
+        :model       => model,
+        :attrs       => params_for_current_scope(attrs)
+      }.tap do |r|
+        if data_mapper
+          r[:data_mapper] = data_mapper
+        elsif whitelisted_attrs.present?
+          r[:whitelisted_attrs] = whitelisted_attrs
+        end
+      end
+    end
 
     def find_associated_model(attrs, args = {})
       case args[:with_macro]
@@ -67,7 +74,7 @@ module Redtape
 
         associated_attrs.inject(association_populators) do |populators, record_attrs|
           assoc_name = find_association_name_in(key)
-          current_scope_attrs = params_for_current_scope_only(record_attrs)
+          current_scope_attrs = params_for_current_scope(record_attrs)
 
           associated_model = find_or_initialize_associated_model(
             current_scope_attrs,
@@ -77,14 +84,20 @@ module Redtape
           )
 
           populator_class = "Redtape::Populator::#{macro.to_s.camelize}".constantize
-          populators << populator_class.new(
+
+          populator_args = {
             :model                => associated_model,
             :association_name     => assoc_name,
             :attrs                => current_scope_attrs,
-            :parent               => model,
-            :data_mapper          => @data_mapper
-          )
+            :parent               => model
+          }
+          if data_mapper
+            populator_args[:data_mapper] = data_mapper
+          elsif whitelisted_attrs.present?
+            populator_args[:whitelisted_attrs] = scoped_whitelisted_attrs_for(assoc_name)
+          end
 
+          populators << populator_class.new(populator_args)
           populators.concat(
             create_populators_for(associated_model, record_attrs)
           )
@@ -121,7 +134,25 @@ module Redtape
       association_reflection.macro
     end
 
-    def params_for_current_scope_only(attrs)
+    def scoped_whitelisted_attrs_for(assoc_name)
+      root_whitelisted_attrs = whitelisted_attrs.values.first
+      whitelisted_attrs_for(assoc_name, root_whitelisted_attrs)
+    end
+
+    # Locate whitelisted attributes for the supplied association name
+    def whitelisted_attrs_for(assoc_name, whitelisted_attrs)
+      whitelisted_attrs.find do |whitelisted_attr|
+        next unless whitelisted_attr.is_a?(Hash)
+
+        if whitelisted_attr.keys.first == assoc_name
+          return whitelisted_attr
+        end
+
+        whitelisted_attrs_for(assoc_name, whitelisted_attr)
+      end
+    end
+
+    def params_for_current_scope(attrs)
       attrs.dup.reject { |_, v| v.is_a? Hash }
     end
 
