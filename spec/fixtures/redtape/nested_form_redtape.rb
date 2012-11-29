@@ -6,8 +6,4 @@ module NestedFormRedtape
       record.attributes = record.attributes.merge(attrs)
     end
   end
-
-  def model_accessor
-    :user
-  end
 end

@@ -4,8 +4,4 @@ module RegistrationRedtape
       record.name = "#{attrs[:first_name]} #{attrs[:last_name]}"
     end
   end
-
-  def model_accessor
-    :user
-  end
 end
