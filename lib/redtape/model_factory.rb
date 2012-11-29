@@ -2,23 +2,22 @@ module Redtape
   class ModelFactory
     attr_reader :model_accessor, :records_to_save, :model
 
-    def initialize(populator, model_accessor = nil)
-      @populator = populator
+    def initialize(data_mapper, model_accessor = nil)
+      @data_mapper = data_mapper
       @model_accessor = model_accessor
       @records_to_save = []
     end
 
     def populate_model
-      params = @populator.params[model_accessor]
+      params = @data_mapper.params[model_accessor]
 
-      # Find or create the root model then populate it
       @model = find_or_create_root_model_from(params)
 
       populators = [
         Populator::Root.new(
           :model       => @model,
           :attrs       => params_for_current_scope_only(params),
-          :data_mapper => @populator
+          :data_mapper => @data_mapper
         )
       ]
       populators.concat(
@@ -43,7 +42,6 @@ module Redtape
       end
     end
 
-    # Factory method for root object
     def find_or_create_root_model_from(params)
       model_class = model_accessor.to_s.camelize.constantize
       if params[:id]
@@ -84,7 +82,7 @@ module Redtape
             :association_name     => assoc_name,
             :attrs                => current_scope_attrs,
             :parent               => model,
-            :data_mapper          => @populator
+            :data_mapper          => @data_mapper
           )
 
           populators.concat(
