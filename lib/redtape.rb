@@ -1,6 +1,6 @@
 require "redtape/version"
 require "redtape/model_factory"
-require "redtape/populator/base"
+require "redtape/populator/abstract"
 require "redtape/populator/root"
 require "redtape/populator/has_many"
 require "redtape/populator/has_one"

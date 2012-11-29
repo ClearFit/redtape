@@ -1,6 +1,6 @@
 module Redtape
   module Populator
-    class Base
+    class Abstract
       attr_reader :association_name, :model, :pending_attributes, :parent, :data_mapper
 
       def initialize(model, association_name, pending_attributes, parent, data_mapper)

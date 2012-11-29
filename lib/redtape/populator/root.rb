@@ -1,6 +1,6 @@
 module Redtape
   module Populator
-    class Root < Base
+    class Root < Abstract
       def assign_to_parent
         # no-op
       end
