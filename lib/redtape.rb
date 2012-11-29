@@ -24,7 +24,7 @@ module Redtape
 
     def initialize(populator, args = {})
       if populator.respond_to?(:populate_individual_record) && args[:whitelisted_attrs]
-        fail DuelingBanjosError, "WARNING: Redtape::Form will use #{populator.class}#populate_individual_record and ignore the 'whitelisted_attrs' argument"
+        fail DuelingBanjosError, "Redtape::Form does not accept both  #{populator.class}#populate_individual_record and the 'whitelisted_attrs' argument"
       end
 
       @model_accessor       =
