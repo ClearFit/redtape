@@ -1,40 +1,27 @@
 require "redtape/version"
+require "redtape/model_factory"
+require "redtape/populator/abstract"
+require "redtape/populator/root"
+require "redtape/populator/has_many"
+require "redtape/populator/has_one"
 
 require 'active_model'
 require 'active_support/core_ext/class/attribute'
 
+require 'active_record'
+
 module Redtape
   class Form
     extend ActiveModel::Naming
+    include ActiveModel::Callbacks
     include ActiveModel::Conversion
     include ActiveModel::Validations
 
-    validate :models_correct
-    class_attribute :model_accessors
+    attr_reader :model_accessor
 
-    def self.validates_and_saves(*args)
-      attr_accessor *args
-      self.model_accessors = args
-    end
-
-    def initialize(attrs = {})
-      attrs.each do |k, v|
-        send("#{k}=", v)
-      end
-    end
-
-    def models_correct
-      populate
-      self.class.model_accessors.each do |accessor|
-        begin
-          model = send(accessor)
-          if model.invalid?
-            own_your_errors_in(model)
-          end
-        rescue NoMethodError => e
-          fail NoMethodError, "#{self.class} is missing 'validates_and_saves :#{accessor}': #{e}"
-        end
-      end
+    def initialize(populator, args = {})
+      @model_accessor       = args[:model_accessor] || default_model_accessor_from(populator)
+      @factory              = ModelFactory.new(populator, model_accessor)
     end
 
     # Forms are never themselves persisted
@@ -42,33 +29,55 @@ module Redtape
       false
     end
 
+    def valid?
+      model = @factory.populate_model
+      instance_variable_set("@#{@model_accessor}", model)
+      valid = model.valid?
+
+      # @errors comes from ActiveModel::Validations. This may not
+      # be a legit hook.
+      @errors = model.errors
+
+      valid
+    end
+
     def save
       if valid?
-        persist!
+        begin
+          ActiveRecord::Base.transaction do
+            @factory.model.save!
+            @factory.records_to_save.each(&:save!)
+          end
+        rescue ActiveRecord::RecordInvalid
+          # This shouldn't even happen with the #valid? above.
+        end
       else
         false
       end
     end
 
-    def persist!
-      self.class.model_accessors.each do |accessor|
-        model = send(accessor)
-        unless model.save
-          return false
-        end
+    def method_missing(*args)
+      if args[0] == send(:model_accessor)
+        # The factory owns the model instance
+        @factory.model
+      else
+        super
       end
-      true
     end
 
-    def populate
-      fail NotImplementedError, "Implement #populate in your subclass"
+    def respond_to?(method, instance_method = false)
+      if method == send(:model_accessor)
+        true
+      else
+        super
+      end
     end
 
     private
 
-    def own_your_errors_in(model)
-      model.errors.each do |k, v|
-        errors.add(k, v)
+    def default_model_accessor_from(populator)
+      if populator.class.to_s =~ /(\w+)Controller/
+        $1.singularize.downcase.to_sym
       end
     end
   end

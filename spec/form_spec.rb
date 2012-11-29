@@ -1,31 +1,23 @@
 require 'spec_helper'
 
-describe Redtape::Form do
-  context "given a Form where the Form fields are a proper subset of the modeled fields" do
-    context "where across all involved objects" do
-      context "all field names are unique" do
-        context "and the data is invalid" do
-          context "in a root object" do
-            it "reports an error on the model as <field_name>"
-          end
-          context "in a nested belongs_to/has_one" do
-            it "reports an error on the model as <model_name>_<field_name>"
-          end
-        end
-      end
+class RegistrationController
+  include RegistrationRedtape
+end
 
-      context "some field names overlap" do
-      end
-    end
-  end
+describe Redtape::Form do
+  subject { Redtape::Form.new(controller_stub, :model_accessor => :user) }
 
   context "given a Form accepting a first and last name that creates a User" do
     context "with valid data" do
-      subject {
-        RegistrationForm.new(
-          :first_name => "Evan",
-          :last_name => "Light"
-        )
+      let (:controller_stub) {
+        RegistrationController.new.tap do |c|
+          c.stub(:params).and_return({
+            :user => {
+              :first_name => "Evan",
+              :last_name => "Light"
+            }
+          })
+        end
       }
 
       context "after saving the form" do
@@ -48,7 +40,15 @@ describe Redtape::Form do
     end
 
     context "with invalid data" do
-      subject { RegistrationForm.new(:first_name => "Evan") }
+      let (:controller_stub) {
+        RegistrationController.new.tap do |c|
+          c.stub(:params).and_return({
+            :user => {
+              :first_name => "Evan"
+            }
+          })
+        end
+      }
 
       context "after saving the form" do
         before do
@@ -60,24 +60,6 @@ describe Redtape::Form do
         specify { subject.errors.should have_key(:name) }
         specify { subject.user.should_not be_valid }
       end
-    end
-  end
-
-  context "given another Form subclass" do
-    before do
-      Class.new(Redtape::Form) do
-        validates_and_saves :test_object
-      end.new(:test_object => :foo)
-    end
-
-    subject { RegistrationForm.new }
-
-    context "RegistrationForm still saves User" do
-      before do
-        subject.save
-      end
-
-      specify { subject.should_not be_valid }
     end
   end
 end
