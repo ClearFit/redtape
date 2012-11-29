@@ -54,12 +54,11 @@ module Redtape
     end
 
     def create_populators_for(model, attributes)
-      attributes.each_with_object([]) do |kv, association_populators|
-        key, value = kv[0], kv[1]
+      attributes.each_with_object([]) do |key_value, association_populators|
+        next unless key_value[1].is_a?(Hash)
 
-        next unless refers_to_association?(value)
-
-        macro = macro_for_attribute_key(key)
+        key, value       = key_value
+        macro            = macro_for_attribute_key(key)
         associated_attrs =
           case macro
           when :has_many
@@ -71,6 +70,7 @@ module Redtape
         associated_attrs.inject(association_populators) do |populators, record_attrs|
           assoc_name = find_association_name_in(key)
           current_scope_attrs = params_for_current_scope_only(record_attrs)
+
           associated_model = find_or_initialize_associated_model(
             current_scope_attrs,
             :for_association_name => assoc_name,
@@ -115,18 +115,12 @@ module Redtape
           model.send("build_#{association_name}")
         end
       end
-    rescue TypeError
-      binding.pry
     end
 
     def macro_for_attribute_key(key)
       association_name = find_association_name_in(key).to_sym
       association_reflection = model.class.reflect_on_association(association_name)
-      macro = association_reflection.macro
-    end
-
-    def refers_to_association?(value)
-      value.is_a?(Hash)
+      association_reflection.macro
     end
 
     def params_for_current_scope_only(attrs)
@@ -141,10 +135,6 @@ module Redtape
 
     def find_association_name_in(key)
       ATTRIBUTES_KEY_REGEXP.match(key)[1]
-    end
-
-    def has_many_attrs_array_from(fields_for_hash)
-      fields_for_hash.values.clone
     end
   end
 end
