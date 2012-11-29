@@ -79,56 +79,73 @@ describe "Using the default ModelFactory" do
       UsersController.new.tap { |c| c.stub(:params => update_params) }
     }
 
-    subject { Redtape::Form.new(controller_stub) }
+    context "with attributes that were not whitelisted" do
 
-    before do
-      params = create_params[:user]
-      u = User.create!(
-        :name                   => params[:name],
-        :social_security_number => params[:social_security_number]
-      )
-      Address.create!(
-        params[:addresses_attributes]["0"].merge(:user_id => u.id)
-      )
-      Address.create!(
-        params[:addresses_attributes]["1"].merge(:user_id => u.id)
-      )
-    end
+      subject {
+        Redtape::Form.new(controller_stub, :whitelisted_attrs => {
+          :user => [
+            :name,
+            {
+              :addresses => [
+                :address1,
+                :address2,
+                :city,
+                :state,
+                :zipcode,
+              ]
+            }
+          ]
+        })
+      }
 
-    context "record counts" do
-      specify do
-        lambda { subject.save }.should_not change(User, :count)
-      end
-
-      specify do
-        lambda { subject.save }.should_not change(Address, :count)
-      end
-    end
-
-    context "record attributes" do
       before do
-        subject.save
+        params = create_params[:user]
+        u = User.create!(
+          :name                   => params[:name],
+          :social_security_number => params[:social_security_number]
+        )
+        Address.create!(
+          params[:addresses_attributes]["0"].merge(:user_id => u.id)
+        )
+        Address.create!(
+          params[:addresses_attributes]["1"].merge(:user_id => u.id)
+        )
       end
 
-      specify do
-        User.last.name.should == update_params[:user][:name]
+      context "record counts" do
+        specify do
+          lambda { subject.save }.should_not change(User, :count)
+        end
+
+        specify do
+          lambda { subject.save }.should_not change(Address, :count)
+        end
       end
 
-      specify do
-        User.last.social_security_number.should_not == update_params[:user][:social_security_number]
-      end
+      context "record attributes" do
+        before do
+          subject.save
+        end
 
-      specify do
-        User.last.addresses.first.address1.should ==
-          update_params[:user][:addresses_attributes]["0"][:address1]
-      end
+        specify do
+          User.last.name.should == update_params[:user][:name]
+        end
 
-      specify do
-        User.last.addresses.first.alarm_code.should_not ==
-          update_params[:user][:addresses_attributes]["0"][:alarm_code]
+        specify do
+          User.last.social_security_number.should_not == update_params[:user][:social_security_number]
+        end
+
+        specify do
+          User.last.addresses.first.address1.should ==
+            update_params[:user][:addresses_attributes]["0"][:address1]
+        end
+
+        specify do
+          User.last.addresses.first.alarm_code.should_not ==
+            update_params[:user][:addresses_attributes]["0"][:alarm_code]
+        end
       end
     end
-
   end
 
   context "User has_one PhoneNumber" do

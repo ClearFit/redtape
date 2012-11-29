@@ -62,4 +62,21 @@ describe Redtape::Form do
       end
     end
   end
+
+  context "Creating a Redtape::Form that provides whitelisted attrs and a #populate_individual_record impl" do
+    let(:controller_stub) {
+      RegistrationController.new.tap { |c|
+        c.stub(:params => {
+          :user => { :first_name => "Evan " }
+        })
+      }
+    }
+
+    it "should raise a DuelingBanjosError" do
+      expect {
+          Redtape::Form.new(controller_stub, :whitelisted_attrs => { :user => [:name] })
+      }.to raise_error(Redtape::DuelingBanjosError)
+    end
+  end
 end
+

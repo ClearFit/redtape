@@ -11,6 +11,9 @@ require 'active_support/core_ext/class/attribute'
 require 'active_record'
 
 module Redtape
+
+  class DuelingBanjosError < StandardError; end
+
   class Form
     extend ActiveModel::Naming
     include ActiveModel::Callbacks
@@ -20,7 +23,15 @@ module Redtape
     attr_reader :model_accessor
 
     def initialize(populator, args = {})
-      @model_accessor       = args[:model_accessor] || default_model_accessor_from(populator)
+      if populator.respond_to?(:populate_individual_record) && args[:whitelisted_attrs]
+        fail DuelingBanjosError, "WARNING: Redtape::Form will use #{populator.class}#populate_individual_record and ignore the 'whitelisted_attrs' argument"
+      end
+
+      @model_accessor       =
+        args[:whitelisted_attrs].try(:keys).try(:first) ||
+        args[:model_accessor] ||
+        default_model_accessor_from(populator)
+
       @factory              = ModelFactory.new(populator, model_accessor)
     end
 
