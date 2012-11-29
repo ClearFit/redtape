@@ -16,11 +16,9 @@ module Redtape
 
       populators = [
         Populator::Root.new(
-          @model,
-          nil,
-          params_for_current_scope_only(params),
-          nil,
-          @populator
+          :model       => @model,
+          :attrs       => params_for_current_scope_only(params),
+          :data_mapper => @populator
         )
       ]
       populators.concat(
@@ -82,11 +80,11 @@ module Redtape
 
           populator_class = "Redtape::Populator::#{macro.to_s.camelize}".constantize
           populators << populator_class.new(
-            associated_model,
-            assoc_name,
-            current_scope_attrs,
-            model,
-            @populator
+            :model                => associated_model,
+            :association_name     => assoc_name,
+            :attrs                => current_scope_attrs,
+            :parent               => model,
+            :data_mapper          => @populator
           )
 
           populators.concat(

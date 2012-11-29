@@ -3,12 +3,12 @@ module Redtape
     class Abstract
       attr_reader :association_name, :model, :pending_attributes, :parent, :data_mapper
 
-      def initialize(model, association_name, pending_attributes, parent, data_mapper)
-        @model = model
-        @association_name = association_name
-        @pending_attributes = pending_attributes
-        @parent = parent
-        @data_mapper = data_mapper
+      def initialize(args = {})
+        @model              = args[:model]
+        @association_name   = args[:association_name]
+        @pending_attributes = args[:attrs]
+        @parent             = args[:parent]
+        @data_mapper        = args[:data_mapper]
       end
 
       def call
