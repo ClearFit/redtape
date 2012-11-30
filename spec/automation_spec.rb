@@ -112,37 +112,23 @@ describe "Using the default ModelFactory" do
         )
       end
 
-      context "record counts" do
-        specify do
-          lambda { subject.save }.should_not change(User, :count)
-        end
+      specify do
+        lambda { subject.save }.should raise_error(Redtape::WhitelistViolationError)
+      end
 
-        specify do
-          lambda { subject.save }.should_not change(Address, :count)
+      specify do
+        begin
+          subject.save
+        rescue
+          expect($!.to_s).to match(/social_security_number/)
         end
       end
 
-      context "record attributes" do
-        before do
+      specify do
+        begin
           subject.save
-        end
-
-        specify do
-          User.last.name.should == update_params[:user][:name]
-        end
-
-        specify do
-          User.last.social_security_number.should_not == update_params[:user][:social_security_number]
-        end
-
-        specify do
-          User.last.addresses.first.address1.should ==
-            update_params[:user][:addresses_attributes]["0"][:address1]
-        end
-
-        specify do
-          User.last.addresses.first.alarm_code.should_not ==
-            update_params[:user][:addresses_attributes]["0"][:alarm_code]
+        rescue
+          expect($!.to_s).to match(/alarm_code/)
         end
       end
     end

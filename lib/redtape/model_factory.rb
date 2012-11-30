@@ -1,15 +1,18 @@
 module Redtape
   class ModelFactory
-    attr_reader :top_level_name, :records_to_save, :model, :controller, :whitelisted_attrs, :attrs
+    attr_reader :top_level_name, :records_to_save, :model, :controller, :attr_whitelist, :attrs
 
     def initialize(args = {})
       assert_inputs(args)
 
-      @attrs             = args[:attrs].first.last
-      @whitelisted_attrs = args[:whitelisted_attrs]
+      @attrs             = args[:attrs].values.first
+      @attr_whitelist    = NullAttrWhitelist.new
+      if args[:whitelisted_attrs]
+        @attr_whitelist  = AttributeWhitelist.new(args[:whitelisted_attrs])
+      end
       @controller        = args[:controller]
       @top_level_name    =
-        args[:whitelisted_attrs].try(:keys).try(:first) ||
+        @attr_whitelist.top_level_name ||
         args[:top_level_name] ||
         default_top_level_name_from(controller)
       @records_to_save   = []
@@ -45,15 +48,16 @@ module Redtape
 
     def root_populator_args
       root_populator_args = {
-        :model       => model,
-        :attrs       => params_for_current_scope(attrs)
+        :model            => model,
+        :attrs            => params_for_current_scope(attrs),
+        :association_name => attrs.keys.first
       }.tap do |r|
-        if whitelisted_attrs.present? && controller.respond_to?(:populate_individual_record)
+        if attr_whitelist.present? && controller.respond_to?(:populate_individual_record)
           fail ArgumentError, "Expected either controller to respond_to #populate_individual_record or :whitelisted_attrs but not both"
         elsif controller.respond_to?(:populate_individual_record)
           r[:data_mapper] = controller
-        elsif whitelisted_attrs.present?
-          r[:whitelisted_attrs] = whitelisted_attrs
+        elsif attr_whitelist
+          r[:attr_whitelist] = attr_whitelist
         end
       end
     end
@@ -111,8 +115,8 @@ module Redtape
           }
           if controller
             populator_args[:data_mapper] = controller
-          elsif whitelisted_attrs.present?
-            populator_args[:whitelisted_attrs] = scoped_whitelisted_attrs_for(assoc_name)
+          elsif attr_whitelist
+            populator_args[:attr_whitelist] = attr_whitelist
           end
 
           populators << populator_class.new(populator_args)
@@ -152,23 +156,6 @@ module Redtape
       association_reflection.macro
     end
 
-    def scoped_whitelisted_attrs_for(assoc_name)
-      root_whitelisted_attrs = whitelisted_attrs.values.first
-      whitelisted_attrs_for(assoc_name, root_whitelisted_attrs)
-    end
-
-    # Locate whitelisted attributes for the supplied association name
-    def whitelisted_attrs_for(assoc_name, whitelisted_attrs)
-      whitelisted_attrs.find do |whitelisted_attr|
-        next unless whitelisted_attr.is_a?(Hash)
-
-        if whitelisted_attr.keys.first == assoc_name
-          return whitelisted_attr
-        end
-
-        whitelisted_attrs_for(assoc_name, whitelisted_attr)
-      end
-    end
 
     def params_for_current_scope(attrs)
       attrs.dup.reject { |_, v| v.is_a? Hash }

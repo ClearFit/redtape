@@ -1,4 +1,5 @@
 require "redtape/version"
+require "redtape/attribute_whitelist"
 require "redtape/model_factory"
 require "redtape/populator/abstract"
 require "redtape/populator/root"

@@ -1,7 +1,7 @@
 module Redtape
   module Populator
     class Abstract
-      attr_reader :association_name, :model, :pending_attributes, :parent, :data_mapper, :whitelisted_attrs
+      attr_reader :association_name, :model, :pending_attributes, :parent, :data_mapper, :attr_whitelist
 
       def initialize(args = {})
         @model              = args[:model]
@@ -9,7 +9,7 @@ module Redtape
         @pending_attributes = args[:attrs]
         @parent             = args[:parent]
         @data_mapper        = args[:data_mapper]
-        @whitelisted_attrs  = args[:whitelisted_attrs] || []
+        @attr_whitelist     = args[:attr_whitelist]
       end
 
       def call
@@ -43,19 +43,20 @@ module Redtape
       end
 
       def populate_individual_record(record, attrs)
-        assert_against_whitelisted(attrs)
+        assert_against_whitelisted(attrs.keys)
 
         # #merge! didn't work here....
         record.attributes = record.attributes.merge(attrs)
       end
 
       def assert_against_whitelisted(attrs)
-        return unless whitelisted_attrs.present?
+        return unless attr_whitelist.present?
+        return if model.new_record?
 
         failed_attrs = []
         attrs.each do |a|
-           if whitelisted_attrs.include?(a)
-             failed_attrs << "\"#{a}\""
+           unless attr_whitelist.allows?(:association_name => association_name, :attr => a)
+             failed_attrs << %{"#{association_name}##{a}"}
            end
         end
 
