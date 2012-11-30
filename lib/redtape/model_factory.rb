@@ -48,7 +48,7 @@ module Redtape
         :model       => model,
         :attrs       => params_for_current_scope(attrs)
       }.tap do |r|
-        if r[:whitelisted_attrs] && controller.respond_to(:populate_individual_record)
+        if whitelisted_attrs.present? && controller.respond_to?(:populate_individual_record)
           fail ArgumentError, "Expected either controller to respond_to #populate_individual_record or :whitelisted_attrs but not both"
         elsif controller.respond_to?(:populate_individual_record)
           r[:data_mapper] = controller
