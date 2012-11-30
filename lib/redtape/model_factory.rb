@@ -3,6 +3,8 @@ module Redtape
     attr_reader :top_level_name, :records_to_save, :model, :controller, :whitelisted_attrs, :attrs
 
     def initialize(args = {})
+      assert_inputs(args)
+
       @attrs             = args[:attrs].first.last
       @whitelisted_attrs = args[:whitelisted_attrs]
       @controller        = args[:controller]
@@ -41,14 +43,13 @@ module Redtape
       end
     end
 
-
     def root_populator_args
       root_populator_args = {
         :model       => model,
         :attrs       => params_for_current_scope(attrs)
       }.tap do |r|
         if r[:whitelisted_attrs] && controller.respond_to(:populate_individual_record)
-          fail ArgumentError, "Expected either controller to respond_to #populate_individual_record or :whitelisted_attrs"
+          fail ArgumentError, "Expected either controller to respond_to #populate_individual_record or :whitelisted_attrs but not both"
         elsif controller.respond_to?(:populate_individual_record)
           r[:data_mapper] = controller
         elsif whitelisted_attrs.present?
@@ -181,6 +182,12 @@ module Redtape
 
     def find_association_name_in(key)
       ATTRIBUTES_KEY_REGEXP.match(key)[1]
+    end
+
+    def assert_inputs(args)
+      if args[:top_level_name] && args[:whitelisted_attrs].present?
+        fail ArgumentError, ":top_level_name is redundant as it is already present as the key in :whitelisted_attrs"
+      end
     end
   end
 end
