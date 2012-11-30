@@ -30,6 +30,12 @@ module Redtape
         p.call
       end
 
+      violations = populators.map(&:whitelist_failures).flatten
+      if violations.present?
+        errors = violations.join(", ")
+        fail WhitelistViolationError, "Form supplied non-whitelisted attrs #{errors}"
+      end
+
       @model
     end
 
@@ -114,7 +120,7 @@ module Redtape
             :attrs                => current_scope_attrs,
             :parent               => model
           }
-          if controller
+          if controller.respond_to?(:populate_individual_record)
             populator_args[:data_mapper] = controller
           elsif attr_whitelist
             populator_args[:attr_whitelist] = attr_whitelist

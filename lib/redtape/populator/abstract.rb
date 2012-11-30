@@ -1,7 +1,7 @@
 module Redtape
   module Populator
     class Abstract
-      attr_reader :association_name, :model, :pending_attributes, :parent, :data_mapper, :attr_whitelist
+      attr_reader :association_name, :model, :pending_attributes, :parent, :data_mapper, :attr_whitelist, :whitelist_failures
 
       def initialize(args = {})
         @model              = args[:model]
@@ -10,6 +10,7 @@ module Redtape
         @parent             = args[:parent]
         @data_mapper        = args[:data_mapper]
         @attr_whitelist     = args[:attr_whitelist]
+        @whitelist_failures = []
       end
 
       def call
@@ -53,16 +54,10 @@ module Redtape
         return unless attr_whitelist.present?
         return if model.new_record?
 
-        failed_attrs = []
         attrs.each do |a|
-          p "unless attr_whitelist.allows?(:association_name => #{association_name}, :attr => #{a})"
           unless attr_whitelist.allows?(:association_name => association_name, :attr => a)
-            failed_attrs << %{"#{association_name}##{a}"}
+            whitelist_failures << %{"#{association_name}##{a}"}
           end
-        end
-
-        if failed_attrs.present?
-          fail WhitelistViolationError, "Form supplied non-whitelisted attrs #{failed_attrs.join(", ")}"
         end
       end
     end
