@@ -120,7 +120,9 @@ module Redtape
             :attrs                => current_scope_attrs,
             :parent               => model
           }
-          if controller.respond_to?(:populate_individual_record)
+          if controller.respond_to?(:populate_individual_record) && attr_whitelist.present?
+            fail ArgumentError, "Expected either controller to respond_to #populate_individual_record or :whitelisted_attrs but not both"
+          elsif controller.respond_to?(:populate_individual_record)
             populator_args[:data_mapper] = controller
           elsif attr_whitelist
             populator_args[:attr_whitelist] = attr_whitelist
