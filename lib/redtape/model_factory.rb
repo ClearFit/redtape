@@ -145,7 +145,7 @@ module Redtape
           attrs,
           :on_model => model,
           :with_macro => macro,
-          :on_association => association,
+          :on_association => association
         ).tap do |record|
           records_to_save << record
         end
