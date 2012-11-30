@@ -16,6 +16,7 @@ RSpec.configure do |config|
   config.after(:each) do
     User.destroy_all
     Address.destroy_all
+    PhoneNumber.destroy_all
   end
 end
 

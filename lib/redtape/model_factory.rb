@@ -5,25 +5,25 @@ module Redtape
     def initialize(args = {})
       assert_inputs(args)
 
-      @attrs             = args[:attrs].values.first
+      @attrs             = args[:attrs]
       @attr_whitelist    = NullAttrWhitelist.new
-      if args[:whitelisted_attrs]
-        @attr_whitelist  = AttributeWhitelist.new(args[:whitelisted_attrs])
-      end
       @controller        = args[:controller]
+      @records_to_save   = []
       @top_level_name    =
         @attr_whitelist.top_level_name ||
         args[:top_level_name] ||
         default_top_level_name_from(controller)
-      @records_to_save   = []
+      if args[:whitelisted_attrs]
+        @attr_whitelist  = AttributeWhitelist.new(args[:whitelisted_attrs])
+      end
     end
 
     def populate_model
-      @model = find_or_create_root_model_from(attrs)
+      @model = find_or_create_root_model
 
       populators = [ Populator::Root.new(root_populator_args) ]
       populators.concat(
-        create_populators_for(model, attrs).flatten
+        create_populators_for(model, attrs.values.first).flatten
       )
 
       populators.each do |p|
@@ -49,7 +49,7 @@ module Redtape
     def root_populator_args
       root_populator_args = {
         :model            => model,
-        :attrs            => params_for_current_scope(attrs),
+        :attrs            => params_for_current_scope(attrs.values.first),
         :association_name => attrs.keys.first
       }.tap do |r|
         if attr_whitelist.present? && controller.respond_to?(:populate_individual_record)
@@ -71,10 +71,11 @@ module Redtape
       end
     end
 
-    def find_or_create_root_model_from(params)
+    def find_or_create_root_model
       model_class = top_level_name.to_s.camelize.constantize
-      if params[:id]
-        model_class.send(:find, params[:id])
+      root_object_id = attrs.values.first[:id]
+      if root_object_id
+        model_class.send(:find, root_object_id)
       else
         model_class.new
       end

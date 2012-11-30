@@ -12,22 +12,25 @@ module Redtape
 
     def allows?(args = {})
       allowed_attrs = whitelisted_attrs_for(args[:association_name]) || []
-      allowed_attrs << :id
-      allowed_attrs.include?(args[:attr])
+      allowed_attrs = allowed_attrs.map(&:to_s)
+      allowed_attrs << "id"
+      allowed_attrs.include?(args[:attr].to_s)
     end
 
     private
 
     # Locate whitelisted attributes for the supplied association name
     def whitelisted_attrs_for(assoc_name, attr_hash = whitelisted_attrs)
-      attr_hash.values.first.find { |whitelisted_attr|
-        if assoc_name == attr_hash.keys.first
-          return attr_hash.values.first.reject { |v| v.is_a? Hash }
-        end
+      if assoc_name.to_s == attr_hash.keys.first.to_s
+        return attr_hash.values.first.reject { |v| v.is_a? Hash }
+      end
 
-        next unless whitelisted_attr.is_a?(Hash)
-        whitelisted_attrs_for(assoc_name, whitelisted_attr)
-      }.values.first
+      scoped_whitelisted_attrs = attr_hash.values.first
+      scoped_whitelisted_attrs.reject { |v|
+        !v.is_a? Hash
+      }.find { |v|
+        whitelisted_attrs_for(assoc_name, v)
+      }.try(:values).try(:first)
     end
   end
 

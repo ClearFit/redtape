@@ -55,9 +55,10 @@ module Redtape
 
         failed_attrs = []
         attrs.each do |a|
-           unless attr_whitelist.allows?(:association_name => association_name, :attr => a)
-             failed_attrs << %{"#{association_name}##{a}"}
-           end
+          p "unless attr_whitelist.allows?(:association_name => #{association_name}, :attr => #{a})"
+          unless attr_whitelist.allows?(:association_name => association_name, :attr => a)
+            failed_attrs << %{"#{association_name}##{a}"}
+          end
         end
 
         if failed_attrs.present?
