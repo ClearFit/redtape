@@ -5,7 +5,7 @@ class NestedFormController
 end
 
 describe Redtape::Form do
-  subject { Redtape::Form.new(controller_stub, :model_accessor => :user) }
+  subject { Redtape::Form.new(controller_stub, :top_level_name => :user) }
 
   let(:create_params) {
     HashWithIndifferentAccess.new(
@@ -43,7 +43,7 @@ describe Redtape::Form do
           subject.save
         end
 
-        specify { subject.user.addresses.count.should == 2 }
+        specify { subject.model.addresses.count.should == 2 }
       end
     end
   end

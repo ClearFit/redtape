@@ -5,7 +5,7 @@ class RegistrationController
 end
 
 describe Redtape::Form do
-  subject { Redtape::Form.new(controller_stub, :model_accessor => :user) }
+  subject { Redtape::Form.new(controller_stub, :top_level_name => :user) }
 
   context "given a Form accepting a first and last name that creates a User" do
     context "with valid data" do
@@ -26,8 +26,8 @@ describe Redtape::Form do
         end
 
         specify { subject.should be_valid }
-        specify { subject.user.should be_valid }
-        specify { subject.user.should be_persisted }
+        specify { subject.model.should be_valid }
+        specify { subject.model.should be_persisted }
       end
 
       context "after validating the form" do
@@ -35,7 +35,7 @@ describe Redtape::Form do
           subject.valid?
         end
 
-        specify { subject.user.should be_valid }
+        specify { subject.model.should be_valid }
       end
     end
 
@@ -58,7 +58,7 @@ describe Redtape::Form do
         specify { subject.should_not be_valid }
         specify { subject.should_not be_persisted }
         specify { subject.errors.should have_key(:name) }
-        specify { subject.user.should_not be_valid }
+        specify { subject.model.should_not be_valid }
       end
     end
   end

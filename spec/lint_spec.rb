@@ -16,7 +16,7 @@ describe "my looks like model class" do
   include ActiveModel::Lint::Tests
   include MiniTest::Assertions
 
-  subject { Redtape::Form.new(RegistrationController.new, :model_accessor => :user) }
+  subject { Redtape::Form.new(RegistrationController.new, :top_level_name => :user) }
 
   def model
     subject

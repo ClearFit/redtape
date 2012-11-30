@@ -1,12 +1,15 @@
 module Redtape
   class ModelFactory
-    attr_reader :model_accessor, :records_to_save, :model, :data_mapper, :whitelisted_attrs, :attrs
+    attr_reader :top_level_name, :records_to_save, :model, :controller, :whitelisted_attrs, :attrs
 
     def initialize(args = {})
       @attrs             = args[:attrs].first.last
       @whitelisted_attrs = args[:whitelisted_attrs]
-      @data_mapper       = args[:data_mapper]
-      @model_accessor    = args[:model_accessor]
+      @controller        = args[:controller]
+      @top_level_name    =
+        args[:whitelisted_attrs].try(:keys).try(:first) ||
+        args[:top_level_name] ||
+        default_top_level_name_from(controller)
       @records_to_save   = []
     end
 
@@ -25,15 +28,29 @@ module Redtape
       @model
     end
 
+    def save!
+      model.save!
+      records_to_save.each(&:save!)
+    end
+
     private
+
+    def default_top_level_name_from(controller)
+      if controller.class.to_s =~ /(\w+)Controller/
+        $1.singularize.downcase.to_sym
+      end
+    end
+
 
     def root_populator_args
       root_populator_args = {
         :model       => model,
         :attrs       => params_for_current_scope(attrs)
       }.tap do |r|
-        if data_mapper
-          r[:data_mapper] = data_mapper
+        if r[:whitelisted_attrs] && controller.respond_to(:populate_individual_record)
+          fail ArgumentError, "Expected either controller to respond_to #populate_individual_record or :whitelisted_attrs"
+        elsif controller.respond_to?(:populate_individual_record)
+          r[:data_mapper] = controller
         elsif whitelisted_attrs.present?
           r[:whitelisted_attrs] = whitelisted_attrs
         end
@@ -50,7 +67,7 @@ module Redtape
     end
 
     def find_or_create_root_model_from(params)
-      model_class = model_accessor.to_s.camelize.constantize
+      model_class = top_level_name.to_s.camelize.constantize
       if params[:id]
         model_class.send(:find, params[:id])
       else
@@ -91,8 +108,8 @@ module Redtape
             :attrs                => current_scope_attrs,
             :parent               => model
           }
-          if data_mapper
-            populator_args[:data_mapper] = data_mapper
+          if controller
+            populator_args[:data_mapper] = controller
           elsif whitelisted_attrs.present?
             populator_args[:whitelisted_attrs] = scoped_whitelisted_attrs_for(assoc_name)
           end
