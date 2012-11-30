@@ -104,7 +104,9 @@ module Redtape
         elsif populator.respond_to?(:populate_individual_record)
           { :data_mapper => populator }
         elsif args[:whitelisted_attrs]
-          { :whitelisted_attrs => args[:whitelisted_attrs] }
+          {
+            :whitelisted_attrs => args[:whitelisted_attrs]
+          }
         else
           {}
         end

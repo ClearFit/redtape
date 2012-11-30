@@ -3,7 +3,7 @@ module Redtape
     attr_reader :model_accessor, :records_to_save, :model, :data_mapper, :whitelisted_attrs, :attrs
 
     def initialize(args = {})
-      @attrs             = args[:attrs]
+      @attrs             = args[:attrs].first.last
       @whitelisted_attrs = args[:whitelisted_attrs]
       @data_mapper       = args[:data_mapper]
       @model_accessor    = args[:model_accessor]
@@ -15,7 +15,7 @@ module Redtape
 
       populators = [ Populator::Root.new(root_populator_args) ]
       populators.concat(
-        create_populators_for(model, attrs.first.last).flatten
+        create_populators_for(model, attrs).flatten
       )
 
       populators.each do |p|

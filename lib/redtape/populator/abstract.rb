@@ -30,7 +30,7 @@ module Redtape
 
       def populate_model_attributes(model, attributes)
         msg_target =
-          if data_mapper.respond_to?(:populate_individual_record)
+          if data_mapper && data_mapper.respond_to?(:populate_individual_record)
             data_mapper
           else
             self
