@@ -7,6 +7,7 @@ group :development do
   gem 'virtus'
   gem 'rspec'
   gem 'rails'
+  gem 'pry'
 
   platform :ruby do
     gem 'sqlite3'

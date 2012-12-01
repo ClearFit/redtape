@@ -15,11 +15,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = Redtape::VERSION
 
-  gem.add_development_dependency "virtus"
-  gem.add_development_dependency "rails"
-  gem.add_development_dependency "rspec"
-  gem.add_development_dependency "sqlite3"
-  gem.add_development_dependency "pry"
+  # See Gemfile for development dependencies.
 
   gem.add_runtime_dependency "activemodel"
   gem.add_runtime_dependency "activesupport"
