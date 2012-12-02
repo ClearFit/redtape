@@ -65,6 +65,14 @@ module Redtape
       end
     end
 
+    def method_missing(*args, &block)
+      if @factory.model
+        @factory.model.send(*args, &block)
+      else
+        super
+      end
+    end
+
     private
 
     def factory_args_for(controller, args)
