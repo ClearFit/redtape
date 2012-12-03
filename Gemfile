@@ -4,9 +4,11 @@ source 'https://rubygems.org'
 gemspec
 
 group :development do
+  gem 'minitest'
   gem 'virtus'
   gem 'rspec'
   gem 'rails'
+  gem 'pry'
 
   platform :ruby do
     gem 'sqlite3'
