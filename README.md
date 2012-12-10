@@ -79,7 +79,7 @@ class SomethingController
 
 ### (Optional) Custom form field mapping to ActiveRecord objects
 
-A Redtape "data mapper" is just a class that implements a *#populated\_individual\_record* method such as:
+A Redtape "data mapper" is just a class that implements a *#populate\_individual\_record* method such as:
 
 ```ruby
 module NestedFormRedtape
