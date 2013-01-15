@@ -81,6 +81,20 @@ sean@clearfit.com
 
 !SLIDE
 
+<img src="images/github_redtape.png">
+
+https://github.com/clearfit/redtape
+
+!SLIDE
+
+October 17, 2012...
+
+<img src="images/code_climate_blog.png">
+
+http://blog.codeclimate.com/
+
+!SLIDE
+
 # Some sample code
 
 ``` ruby
