@@ -6,7 +6,7 @@
 
 ## github.com/clearfit/redtape
 
-## redtape-slides.herokuapp.com
+## clearfit.github.com/redtape
 !SLIDE
 
 # Introductory...
