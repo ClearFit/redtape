@@ -104,8 +104,6 @@ body {
       -moz-box-pack: start;
       -ms-box-pack: start;
       box-pack: start; }
-      .keydown.deck-container .slide.full-background.test {
-        background-image: url(../images/test.png); }
       .keydown.deck-container .slide.full-background h1 {
         display: inline;
         position: absolute;

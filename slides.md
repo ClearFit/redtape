@@ -93,22 +93,3 @@ October 17, 2012...
 
 http://blog.codeclimate.com/
 
-!SLIDE
-
-# Some sample code
-
-``` ruby
-def method
-  puts "Hello, World"
-end
-```
-
-!NOTES
-
- * a note
-
-!SLIDE
-
-# With a Background Image
-
-}}} images/test.png
